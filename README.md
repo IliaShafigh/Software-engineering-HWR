@@ -1,3 +1,3 @@
-# Software-engineering-HWR
-ilia brotha u have small d
-Hung is hung like a duck cuz he likes to fuck
+# Software-Engineering-Chat0815-HWR
+
+Decentralized local chat service pedophilesafe and userfriendly 
