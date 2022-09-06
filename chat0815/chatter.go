@@ -13,20 +13,26 @@ func main() {
 	*chatContent = append(*chatContent, "Take care of each other and watch your drink")
 	*chatContent = append(*chatContent, "Welcome to chat0815")
 
-	//FYNE STUFF
-	a := gui.BuildApp(chatContent)
-	a.Run()
+	cStatus := contivity.ChatroomStatus{
+		ChatContent: chatContent,
+		UserAddr:    &[]net.TCPAddr{},
+		BlockedAddr: &[]net.TCPAddr{},
+	}
+
 	//__________________________________________________________________
-	l, err := net.Listen("tcp", "")
+	l, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		log.Println("Listener died")
 		log.Fatal(err)
 	}
 	defer l.Close()
-	go contivity.RunServer(l)
+	refresh := make(chan bool)
 
-	connected := make(chan bool)
-	go contivity.ConnectPLS(l.Addr(), connected)
+	go contivity.RunServer(l, cStatus, refresh)
 
-	<-connected
+	go contivity.GetStatusUpdate(l.Addr(), cStatus)
+	//FYNE STUFF
+	a := gui.BuildApp(cStatus, refresh)
+	a.Run()
+
 }
