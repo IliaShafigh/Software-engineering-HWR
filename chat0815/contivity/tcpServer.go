@@ -33,7 +33,7 @@ func AddUserAddr(newAddr net.Addr, cStatusC chan *ChatroomStatus) {
 	cStatusC <- cStatus
 }
 
-func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool) {
+func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) {
 	log.Println("Listener initiating with server address", l.Addr().String())
 
 	log.Println("SERVER: listening")
@@ -42,11 +42,11 @@ func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool)
 		conn, err := l.Accept()
 		if err != nil {
 			log.Println("SERVER: Error accepting incoming transmission from", conn.RemoteAddr().String())
-			log.Fatal(err)
+			errorC <- ErrorMessage{Err: err, Msg: "Failed connection attempt from" + conn.RemoteAddr().String()}
+		} else {
+			log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
+			go HandleRequest(conn, cStatusC, refresh)
 		}
-		log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
-
-		go HandleRequest(conn, cStatusC, refresh)
 	}
 }
 
@@ -102,4 +102,9 @@ func TcpAddr(ip net.IP) net.TCPAddr {
 		Port: 8888,
 		Zone: "",
 	}
+}
+
+type ErrorMessage struct {
+	Err error
+	Msg string
 }

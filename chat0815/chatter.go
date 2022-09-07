@@ -21,6 +21,7 @@ func main() {
 	}
 	refresh := make(chan bool)
 	cStatusC := make(chan *contivity.ChatroomStatus)
+	errorC := make(chan contivity.ErrorMessage)
 	go manageCStatus(&cStatus, cStatusC)
 
 	//__________________________________________________________________
@@ -31,12 +32,12 @@ func main() {
 	}
 	defer l.Close()
 	//start server
-	go contivity.RunServer(l, cStatusC, refresh)
+	go contivity.RunServer(l, cStatusC, refresh, errorC)
 	//Sync with yourself first
-	go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh)
+	go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh, errorC)
 	//FYNE STUFF
 	log.Println("LOL")
-	a := gui.BuildApp(cStatusC, refresh)
+	a := gui.BuildApp(cStatusC, errorC, refresh)
 	a.Run()
 
 }

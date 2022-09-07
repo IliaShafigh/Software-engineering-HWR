@@ -9,12 +9,12 @@ import (
 	"fyne.io/fyne/widget"
 )
 
-func BuildApp(cStatusC chan *contivity.ChatroomStatus, refresh chan bool) fyne.App {
+func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, refresh chan bool) fyne.App {
 	a := app.New()
 	w := a.NewWindow("chat 0815")
 	w.Resize(fyne.NewSize(1200, 600))
 	w.SetFixedSize(true)
-	startUpWin := BuildStartUp(cStatusC, a, w)
+	startUpWin := BuildStartUp(cStatusC, errorC, a, w)
 
 	chatDisplay := widget.NewList(
 		func() int {

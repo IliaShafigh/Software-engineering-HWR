@@ -7,13 +7,14 @@ import (
 	"strings"
 )
 
-func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool) {
+func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) error {
 	//Connection
 	log.Println("Client: Trying to connect to", addr.String())
 	conn, err := net.Dial("tcp", addr.String())
 	if err != nil {
-		log.Println("Client: could not establish connection to get Updates from", addr.String())
-		return
+		log.Println("Client: could not establish connection to get Updates from", addr.String(), err)
+		refresh <- false
+		return err
 	}
 	defer conn.Close()
 	log.Println("Client: connected successfully to:", conn.RemoteAddr().String())
@@ -49,7 +50,7 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	log.Println("Client:", cStatus.BlockedAddr)
 	refresh <- true
 	log.Println("Client: Got all updates, closing connection now")
-	return
+	return nil
 }
 
 func mergeCStatus(newStatus ChatroomStatus, cStatusC chan *ChatroomStatus) ChatroomStatus {
@@ -121,7 +122,8 @@ func sendMsg(addr net.Addr, msg string, request string) error {
 	connectAddr := strings.Split(addr.String(), ":")[0] + ":8888"
 	conn, err := net.Dial("tcp", connectAddr)
 	if err != nil {
-		log.Println("Client: could not connect to:", conn.RemoteAddr())
+		log.Println("Client: conn err :", err, addr.String())
+		log.Println("Client: could not connect to:", addr.String())
 		return err
 	}
 	defer conn.Close()

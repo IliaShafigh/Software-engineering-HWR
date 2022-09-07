@@ -9,11 +9,13 @@ import (
 	"net"
 )
 
-func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, a fyne.App, mainWin fyne.Window) fyne.Window {
+func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
-	w := a.NewWindow("connect")
-	w.Resize(fyne.NewSize(300, 100))
-	w.SetFixedSize(true)
+	startUpWin := a.NewWindow("connect")
+	startUpWin.Resize(fyne.NewSize(300, 100))
+	startUpWin.SetFixedSize(true)
+	logWin := a.NewWindow("Log Output")
+	go manageLogWindow(errorC, logWin)
 
 	nameEntry := widget.NewEntry()
 	nameEntryConfig(nameEntry)
@@ -21,14 +23,22 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, a fyne.App, mainWin f
 	ipEntryConfig(ipEntry)
 	//confirm button
 	conf := widget.NewButton("Confirm", func() {
-		confButtonClicked(cStatusC, nameEntry.Text, ipEntry.Text, mainWin, w)
+		confButtonClicked(cStatusC, errorC, nameEntry.Text, ipEntry.Text, mainWin, startUpWin)
 	})
 	content := container.NewVBox(nameEntry, ipEntry, conf)
-	w.SetContent(content)
-	return w
+	startUpWin.SetContent(content)
+	return startUpWin
 }
 
-func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, name, ip string, mainWin fyne.Window, w fyne.Window) {
+func manageLogWindow(errorC chan contivity.ErrorMessage, win fyne.Window) {
+	for {
+		logs := <-errorC
+		win.Hide()
+		showLog(logs, win)
+	}
+}
+
+func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, name, ip string, mainWin, w fyne.Window) {
 	connIp := net.ParseIP(ip)
 	if connIp == nil && ip != "" {
 		log.Println("StartUp: wrong format of ip")
@@ -38,11 +48,18 @@ func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, name, ip string,
 	} else {
 		check := make(chan bool)
 		connAddr := contivity.TcpAddr(connIp)
-		go contivity.GetStatusUpdate(&connAddr, cStatusC, check)
+		go func() {
+			err := contivity.GetStatusUpdate(&connAddr, cStatusC, check, errorC)
+			if err != nil {
+				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
+			}
+		}()
+
 		if <-check {
 			w.Hide()
 			mainWin.Show()
 		}
+
 	}
 }
 
