@@ -9,24 +9,27 @@ import (
 	"fyne.io/fyne/widget"
 )
 
-func BuildApp(cStatus contivity.ChatroomStatus, refresh chan bool) fyne.App {
+func BuildApp(cStatusC chan *contivity.ChatroomStatus, refresh chan bool) fyne.App {
 	a := app.New()
-
-	w := a.NewWindow("Hello World")
+	w := a.NewWindow("chat 0815")
 	w.Resize(fyne.NewSize(1200, 600))
 	w.SetFixedSize(true)
+	startUpWin := BuildStartUp(cStatusC, a, w)
 
 	chatDisplay := widget.NewList(
 		func() int {
-			return len(*cStatus.ChatContent)
+			cStatus := <-cStatusC
+			cStatusC <- cStatus
+			return len(cStatus.ChatContent)
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Template")
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			contents := *cStatus.ChatContent
-
-			obj.(*widget.Label).SetText(contents[len(*cStatus.ChatContent)-1-i])
+			cStatus := <-cStatusC
+			contents := cStatus.ChatContent
+			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
+			cStatusC <- cStatus
 		},
 	)
 	//Refresh request
@@ -37,14 +40,14 @@ func BuildApp(cStatus contivity.ChatroomStatus, refresh chan bool) fyne.App {
 
 	//Send Button
 	send := widget.NewButton("Send it!", func() {
-		sendButtonClicked(input, cStatus, chatDisplay)
+		sendButtonClicked(input, cStatusC)
 	})
 
 	chat := container.NewMax(chatDisplay)
 	navigation := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), input, send)
 	content := container.NewHSplit(navigation, chat)
 	w.SetContent(content)
-	w.Show()
+	startUpWin.Show()
 	return a
 }
 
@@ -70,14 +73,10 @@ func inputEntryConfiguration(input *widget.Entry) {
 	}
 }
 
-func sendButtonClicked(input *widget.Entry, cStatus contivity.ChatroomStatus, chatDisplay *widget.List) {
+func sendButtonClicked(input *widget.Entry, cStatusC chan *contivity.ChatroomStatus) {
 	if input.Text == "" {
 		return
 	}
-	contivity.SendMessageToGroup(cStatus, input.Text)
-	//remove later just debuggin
-	//*cStatus.ChatContent = append(*cStatus.ChatContent, input.Text)
-	chatDisplay.Refresh()
-
+	contivity.SendMessageToGroup(input.Text, cStatusC)
 	input.SetText("")
 }

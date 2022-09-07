@@ -1,31 +1,39 @@
 package contivity
 
 import (
+	"encoding/gob"
 	"log"
 	"net"
+	"strings"
 )
 
 type ChatroomStatus struct {
-	ChatContent *[]string
-	UserAddr    *[]net.TCPAddr
-	BlockedAddr *[]net.TCPAddr
-}
-type ChatroomStatusTcp struct {
 	ChatContent []string
-	UserAddr    []net.TCPAddr
-	BlockedAddr []net.TCPAddr
+	UserAddr    []net.Addr
+	BlockedAddr []net.Addr
 }
 
-func packCStatus(cStatus ChatroomStatus) ChatroomStatusTcp {
-	return ChatroomStatusTcp{
-		ChatContent: *cStatus.ChatContent,
-		UserAddr:    *cStatus.UserAddr,
-		BlockedAddr: *cStatus.BlockedAddr,
+func AddUserAddr(newAddr net.Addr, cStatusC chan *ChatroomStatus) {
+	cStatus := <-cStatusC
+
+	for _, usrAddr := range cStatus.UserAddr {
+		if strings.Split(newAddr.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
+			//Addr is already in s.UserAddr so nothing happens
+			cStatusC <- cStatus
+			return
+		}
+
 	}
-
+	toAdd := net.TCPAddr{
+		IP:   net.ParseIP(strings.Split(newAddr.String(), ":")[0]),
+		Port: 8888,
+		Zone: "",
+	}
+	cStatus.UserAddr = append(cStatus.UserAddr, &toAdd)
+	cStatusC <- cStatus
 }
 
-func RunServer(l net.Listener, cStatus ChatroomStatus, refresh chan bool) {
+func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool) {
 	log.Println("Listener initiating with server address", l.Addr().String())
 
 	log.Println("SERVER: listening")
@@ -36,19 +44,18 @@ func RunServer(l net.Listener, cStatus ChatroomStatus, refresh chan bool) {
 			log.Println("SERVER: Error accepting incoming transmission from", conn.RemoteAddr().String())
 			log.Fatal(err)
 		}
-		log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String(), ". Sending ChatRoomStatus...")
+		log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
 
-		go HandleRequest(conn, cStatus, refresh)
+		go HandleRequest(conn, cStatusC, refresh)
 	}
 }
 
-func HandleRequest(conn net.Conn, cStatus ChatroomStatus, refresh chan bool) {
-	log.Println("SERVER: TCP Accepted from", conn.RemoteAddr().String())
+func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bool) {
+	log.Println("SERVER: TCP Accepted from", conn.RemoteAddr().String(), ",reading request type now...")
 	//Expecting request type
-	tmp := make([]byte, 1024)
+	tmp := make([]byte, 8)
 	_, err := conn.Read(tmp)
 	request := string(tmp)[0:4]
-
 	if err != nil {
 		log.Println("SERVER: Could not Read request type because of:", err)
 	}
@@ -56,70 +63,43 @@ func HandleRequest(conn net.Conn, cStatus ChatroomStatus, refresh chan bool) {
 
 	switch {
 	case request == "NGMX":
-		//Confirm request
-		log.Println("SERVER: new group Message request")
-		_, err = conn.Write([]byte("New Group Message X"))
-		if err != nil {
-			log.Println("SERVER: could not write confirmation for", request, "type")
-			return
-		}
-		//Read New Group Message
-		newGroupMsg := make([]byte, 1024)
-		_, err = conn.Read(newGroupMsg)
-		if err != nil {
-			log.Println("SERVER: could not read new group Message from", conn.RemoteAddr().String())
-			return
-		}
-		*cStatus.ChatContent = append(*cStatus.ChatContent, string(newGroupMsg))
+		log.Println("SERVER: new Group Message requets")
+		msg := strings.TrimPrefix(string(tmp), request+":")
+		log.Println("SERVER: msg received was:", msg)
+		AddGroupMessage(msg, cStatusC)
 		refresh <- true
 	case request == "UXXX":
-		//Confirm request
-		log.Println("SERVER: new Update request ")
-		//Confirm Update Request X
-		_, err = conn.Write([]byte("CURX"))
-		if err != nil {
-			log.Println("SERVER: could not write confirmation for", request, "type")
-		}
+		log.Println("SERVER: new Update request, encoding now... ")
+		//Add Addr
+		AddUserAddr(conn.RemoteAddr(), cStatusC)
 
-		err = sendChatContent(conn, cStatus)
+		cStatus := <-cStatusC
+		encoder := gob.NewEncoder(conn)
+		gob.Register(&net.TCPAddr{})
+		err = encoder.Encode(*cStatus)
 		if err != nil {
-			//TODO abort?
+			log.Println("SERVER: Problem with encoding:", err)
+			panic("")
 		}
-		err = sendAddresses(conn, cStatus)
-		if err != nil {
+		cStatusC <- cStatus
+		log.Println("SERVER: Encoding is over!")
 
-		}
-		conn.Close()
 	case request == "NVKR":
 	case request == "NGR":
 	}
 
 }
 
-func sendAddresses(conn net.Conn, cStatus ChatroomStatus) error {
-	//Send User Adresses
-	for _, addr := range *cStatus.UserAddr {
-		_ = addr
-	}
-	//Send Blocked User Adresses
-	return nil
+func AddGroupMessage(msg string, cStatusC chan *ChatroomStatus) {
+	cStatus := <-cStatusC
+	cStatus.ChatContent = append(cStatus.ChatContent, msg)
+	cStatusC <- cStatus
 }
 
-func sendChatContent(conn net.Conn, cStatus ChatroomStatus) error {
-	log.Println("SERVER: sending ChatContent")
-	for _, msg := range *cStatus.ChatContent {
-		//Write message
-		log.Println("SERVER: trying to send...")
-		_, err := conn.Write([]byte(msg + "\n"))
-		if err != nil {
-			log.Println("SERVER: could not write msg ", msg, "to", conn.RemoteAddr().String(), "SKIPPING")
-		}
+func TcpAddr(ip net.IP) net.TCPAddr {
+	return net.TCPAddr{
+		IP:   ip,
+		Port: 8888,
+		Zone: "",
 	}
-
-	_, err := conn.Write([]byte("XXX"))
-	if err != nil {
-		log.Println("SERVER: Could not write end of ChatContent to", conn.RemoteAddr().String())
-		return err
-	}
-	return nil
 }
