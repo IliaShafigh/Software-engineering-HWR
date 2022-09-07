@@ -52,9 +52,9 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	return
 }
 
-//TODO Improve maybe?
 func mergeCStatus(newStatus ChatroomStatus, cStatusC chan *ChatroomStatus) ChatroomStatus {
 	//ChatContent Merge
+	//TODO Improve chat merge
 	ownStatus := <-cStatusC
 	if len(ownStatus.ChatContent) >= len(newStatus.ChatContent) {
 		for _, msg := range ownStatus.ChatContent {
@@ -69,33 +69,31 @@ func mergeCStatus(newStatus ChatroomStatus, cStatusC chan *ChatroomStatus) Chatr
 		}
 	}
 	//UserAddr Merge
-	if len(ownStatus.UserAddr) >= len(newStatus.UserAddr) {
-		for _, msg := range ownStatus.UserAddr {
-			//Compare
-			//Do nothing because we assume that our chat is more advanced and we have the same messages
-			_ = msg
+	for _, nAddr := range newStatus.UserAddr {
+		if !contains(ownStatus.UserAddr, nAddr) {
+			ownStatus.UserAddr = append(ownStatus.UserAddr, nAddr)
 		}
-	} else {
-		for i := len(ownStatus.UserAddr); i < len(newStatus.UserAddr); i++ {
-			newAddrs := newStatus.UserAddr
-			ownStatus.UserAddr = append(ownStatus.UserAddr, newAddrs[i])
-		}
+
 	}
+
 	//BlockedAddr Merge
-	if len(ownStatus.BlockedAddr) >= len(newStatus.BlockedAddr) {
-		for _, msg := range ownStatus.BlockedAddr {
-			//Compare
-			//Do nothing because we assume that our chat is more advanced and we have the same messages
-			_ = msg
-		}
-	} else {
-		for i := len(ownStatus.BlockedAddr); i < len(newStatus.BlockedAddr); i++ {
-			newBlAddrs := newStatus.BlockedAddr
-			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, newBlAddrs[i])
+	for _, nAddr := range newStatus.BlockedAddr {
+		if !contains(ownStatus.UserAddr, nAddr) {
+			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
 		}
 	}
+
 	cStatusC <- ownStatus
 	return *ownStatus
+}
+
+func contains(addrs []net.Addr, addr2 net.Addr) bool {
+	for _, addr := range addrs {
+		if addr.String() == addr2.String() {
+			return true
+		}
+	}
+	return false
 }
 
 //Send Message to all participants of the Group including oneself
