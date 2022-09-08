@@ -13,8 +13,7 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity
 
 	startUpWin := a.NewWindow("connect")
 	startUpWin.SetFixedSize(true)
-	logWin := a.NewWindow("Log Output")
-	go manageLogWindow(errorC, logWin)
+	go manageLogWindow(errorC, a)
 
 	nameEntry := widget.NewEntry()
 	nameEntryConfig(nameEntry)
@@ -29,11 +28,12 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity
 	return startUpWin
 }
 
-func manageLogWindow(errorC chan contivity.ErrorMessage, win fyne.Window) {
+func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
+	var logs contivity.ErrorMessage
 	for {
-		logs := <-errorC
-		win.Hide()
-		showLog(logs, win)
+		logs = <-errorC
+		log.Println("HELLOOOOO")
+		go showLog(logs, a)
 	}
 }
 

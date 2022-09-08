@@ -8,7 +8,7 @@ import (
 	"image/color"
 )
 
-func showLog(logs contivity.ErrorMessage, logWin fyne.Window) {
+func showLog(logs contivity.ErrorMessage, a fyne.App) {
 	line1 := canvas.NewText(logs.Msg, &color.RGBA{0xff, 0xff, 0xff, 0xff})
 	line1.TextSize = 12
 	line1.Alignment = fyne.TextAlignCenter
@@ -19,6 +19,7 @@ func showLog(logs contivity.ErrorMessage, logWin fyne.Window) {
 	line2.TextSize = 12
 	line2.Alignment = fyne.TextAlignCenter
 	content := container.NewVBox(line1, line2)
+	logWin := a.NewWindow("Log Output")
 	logWin.SetContent(content)
 	logWin.Show()
 }

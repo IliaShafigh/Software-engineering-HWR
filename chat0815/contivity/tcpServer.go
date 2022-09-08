@@ -49,6 +49,9 @@ func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool,
 	}
 }
 
+//TODO if unknownIP(conn.Addr) && request != "UXXX {
+//			perform UXXX
+//		}
 func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) {
 	log.Println("SERVER: TCP Accepted from", conn.RemoteAddr().String(), ",reading request type now...")
 	//Expecting request type
