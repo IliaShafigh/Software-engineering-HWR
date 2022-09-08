@@ -14,6 +14,8 @@ func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.Err
 	w := a.NewWindow("chat 0815")
 	w.Resize(fyne.NewSize(1200, 600))
 	w.SetFixedSize(true)
+	w.SetMaster()
+	w.SetOnClosed(func() { contivity.SayGoodBye(cStatusC) })
 	startUpWin := BuildStartUp(cStatusC, errorC, a, w)
 	chatDisplay := widget.NewList(
 		func() int {

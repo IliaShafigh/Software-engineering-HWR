@@ -60,6 +60,7 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 	request := string(tmp)[0:4]
 	if err != nil {
 		log.Println("SERVER: Could not Read request type because of:", err)
+		return
 	}
 	log.Println("SERVER: Received request type " + request + "!")
 	log.Println("SERVER: Full Message:", string(tmp))
@@ -87,10 +88,30 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		cStatusC <- cStatus
 		log.Println("SERVER: Encoding is over!")
 
+	case request == "GBXX":
+		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
+		RemoveUserAddr(conn.RemoteAddr(), cStatusC)
 	case request == "NVKR":
 	case request == "NGR":
 	}
 
+}
+
+func RemoveUserAddr(toRemove net.Addr, cStatusC chan *ChatroomStatus) {
+	cStatus := <-cStatusC
+	for i, usrAddr := range cStatus.UserAddr {
+		if strings.Split(toRemove.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
+			//Addr found so remove it and append everything else
+			part2 := cStatus.UserAddr[i+1:]
+			cStatus.UserAddr = cStatus.UserAddr[0:i]
+			cStatus.UserAddr = append(cStatus.UserAddr, part2...)
+			cStatusC <- cStatus
+			log.Println(cStatus.UserAddr, "Removed ", toRemove.String())
+			return
+		}
+
+	}
+	cStatusC <- cStatus
 }
 
 func AddGroupMessage(msg string, cStatusC chan *ChatroomStatus) {

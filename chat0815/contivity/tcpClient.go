@@ -111,7 +111,7 @@ func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan E
 	userAddresses := tmp.UserAddr
 	cStatusC <- tmp
 	for _, addr := range userAddresses {
-		err := sendMsg(addr, msg, request, errorC)
+		err := sendMsg(addr, msg, request)
 		if err != nil {
 			//TODO if not reachable, delete from cStatus?
 			log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
@@ -121,13 +121,12 @@ func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan E
 	return
 }
 
-func sendMsg(addr net.Addr, msg string, request string, errorC chan ErrorMessage) error {
+func sendMsg(addr net.Addr, msg string, request string) error {
 	//Connect to addr
 	connectAddr := strings.Split(addr.String(), ":")[0] + ":8888"
 	conn, err := net.Dial("tcp", connectAddr)
 	if err != nil {
 		log.Println("Client: conn err :", err, addr.String())
-		errorC <- ErrorMessage{Err: err, Msg: "Client: connection error to " + addr.String()}
 		return err
 	}
 	defer conn.Close()
@@ -135,7 +134,6 @@ func sendMsg(addr net.Addr, msg string, request string, errorC chan ErrorMessage
 	_, err = conn.Write([]byte(request + ":" + msg))
 	if err != nil {
 		log.Println("Client: could not write request type cause of:", err)
-		errorC <- ErrorMessage{Err: err, Msg: "Client: connection error to " + addr.String()}
 		return err
 	}
 	log.Println("Client: did write request type and send msg to", addr.String())
@@ -152,4 +150,21 @@ func GetOutboundIP() net.IP {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
+}
+
+func SayGoodBye(cStatusC chan *ChatroomStatus) {
+	log.Println("Saying goodbye now!")
+	request := "GBXX"
+
+	tmp := <-cStatusC
+	userAddresses := tmp.UserAddr
+	cStatusC <- tmp
+	for _, addr := range userAddresses {
+		err := sendMsg(addr, "", request)
+		if err != nil {
+			//TODO if not reachable, delete from cStatus?
+			log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
+			continue
+		}
+	}
 }

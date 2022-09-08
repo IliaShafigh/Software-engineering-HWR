@@ -5,6 +5,7 @@ import (
 	"chat0815/gui"
 	"log"
 	"net"
+	"os"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 	//FYNE STUFF
 	a := gui.BuildApp(cStatusC, errorC, refresh)
 	a.Run()
-
+	os.Exit(0)
 }
 
 //Provides the pointer to the current ChatRoomStatus, always waits for a pointer in return.
