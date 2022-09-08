@@ -104,7 +104,7 @@ func contains(addrs []net.Addr, addr2 net.Addr) bool {
 //Updates of ChatDisplay should be implemented in tcpServer
 func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
 	log.Println("Client: Sending Message to Group")
-	errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
+	//errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
 	request := "NGMX"
 
 	tmp := <-cStatusC
