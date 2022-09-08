@@ -35,7 +35,6 @@ func AddUserAddr(newAddr net.Addr, cStatusC chan *ChatroomStatus) {
 
 func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) {
 	log.Println("Listener initiating with server address", l.Addr().String())
-
 	log.Println("SERVER: listening")
 
 	for {
@@ -45,21 +44,22 @@ func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool,
 			errorC <- ErrorMessage{Err: err, Msg: "Failed connection attempt from" + conn.RemoteAddr().String()}
 		} else {
 			log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
-			go HandleRequest(conn, cStatusC, refresh)
+			go HandleRequest(conn, cStatusC, refresh, errorC)
 		}
 	}
 }
 
-func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bool) {
+func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) {
 	log.Println("SERVER: TCP Accepted from", conn.RemoteAddr().String(), ",reading request type now...")
 	//Expecting request type
-	tmp := make([]byte, 8)
+	tmp := make([]byte, 70)
 	_, err := conn.Read(tmp)
 	request := string(tmp)[0:4]
 	if err != nil {
 		log.Println("SERVER: Could not Read request type because of:", err)
 	}
 	log.Println("SERVER: Received request type " + request + "!")
+	log.Println("SERVER: Full Message:", string(tmp))
 
 	switch {
 	case request == "NGMX":
@@ -79,7 +79,7 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		err = encoder.Encode(*cStatus)
 		if err != nil {
 			log.Println("SERVER: Problem with encoding:", err)
-			panic("")
+			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not encode and send cStatus"}
 		}
 		cStatusC <- cStatus
 		log.Println("SERVER: Encoding is over!")

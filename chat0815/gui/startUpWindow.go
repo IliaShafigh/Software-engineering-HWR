@@ -12,7 +12,6 @@ import (
 func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
 	startUpWin := a.NewWindow("connect")
-	startUpWin.Resize(fyne.NewSize(300, 100))
 	startUpWin.SetFixedSize(true)
 	logWin := a.NewWindow("Log Output")
 	go manageLogWindow(errorC, logWin)

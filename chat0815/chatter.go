@@ -36,7 +36,6 @@ func main() {
 	//Sync with yourself first
 	go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh, errorC)
 	//FYNE STUFF
-	log.Println("LOL")
 	a := gui.BuildApp(cStatusC, errorC, refresh)
 	a.Run()
 

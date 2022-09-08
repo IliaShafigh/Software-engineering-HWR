@@ -15,7 +15,6 @@ func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.Err
 	w.Resize(fyne.NewSize(1200, 600))
 	w.SetFixedSize(true)
 	startUpWin := BuildStartUp(cStatusC, errorC, a, w)
-
 	chatDisplay := widget.NewList(
 		func() int {
 			cStatus := <-cStatusC
@@ -40,7 +39,7 @@ func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.Err
 
 	//Send Button
 	send := widget.NewButton("Send it!", func() {
-		sendButtonClicked(input, cStatusC)
+		sendButtonClicked(input, cStatusC, errorC)
 	})
 
 	chat := container.NewMax(chatDisplay)
@@ -64,8 +63,6 @@ func refreshChatDisplay(refresh chan bool, chatDisplay *widget.List) {
 func inputEntryConfiguration(input *widget.Entry) {
 	input.SetPlaceHolder("Write a Message")
 	input.OnChanged = func(typed string) {
-		input.Resize(fyne.NewSize(390, 100))
-		//TODO CAP the length of the length
 		if len(typed) >= 43 {
 			//input.Disable()
 			input.SetText(input.Text[:42])
@@ -73,10 +70,10 @@ func inputEntryConfiguration(input *widget.Entry) {
 	}
 }
 
-func sendButtonClicked(input *widget.Entry, cStatusC chan *contivity.ChatroomStatus) {
+func sendButtonClicked(input *widget.Entry, cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage) {
 	if input.Text == "" {
 		return
 	}
-	contivity.SendMessageToGroup(input.Text, cStatusC)
+	contivity.SendMessageToGroup(input.Text, cStatusC, errorC)
 	input.SetText("")
 }

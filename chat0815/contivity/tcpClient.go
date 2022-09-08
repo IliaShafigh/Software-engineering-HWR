@@ -14,6 +14,7 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	if err != nil {
 		log.Println("Client: could not establish connection to get Updates from", addr.String(), err)
 		refresh <- false
+		errorC <- ErrorMessage{Err: err, Msg: "Client: could not establish connection to get Updates from, " + addr.String()}
 		return err
 	}
 	defer conn.Close()
@@ -22,6 +23,7 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	_, err = conn.Write([]byte("UXXX"))
 	if err != nil {
 		log.Println("Client: could not write request type cause of:", err)
+		errorC <- ErrorMessage{Err: err, Msg: "Client: could not write request type to, " + addr.String()}
 	}
 	log.Println("Client: did write request type, trying to decode now...")
 
@@ -30,6 +32,7 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	err = decoder.Decode(newCStatus)
 	if err != nil {
 		log.Println("Client: Problem with Decoding cause of", err)
+		errorC <- ErrorMessage{Err: err, Msg: "Client: could not decode cStatus from, " + addr.String()}
 	}
 	log.Println("Client: Deconding seems to have worked")
 	log.Println("Client: this is the Status from Remote:")
@@ -99,15 +102,16 @@ func contains(addrs []net.Addr, addr2 net.Addr) bool {
 
 //Send Message to all participants of the Group including oneself
 //Updates of ChatDisplay should be implemented in tcpServer
-func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus) {
+func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
 	log.Println("Client: Sending Message to Group")
+	errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
 	request := "NGMX"
 
 	tmp := <-cStatusC
 	userAddresses := tmp.UserAddr
 	cStatusC <- tmp
 	for _, addr := range userAddresses {
-		err := sendMsg(addr, msg, request)
+		err := sendMsg(addr, msg, request, errorC)
 		if err != nil {
 			//TODO if not reachable, delete from cStatus?
 			log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
@@ -117,13 +121,13 @@ func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus) {
 	return
 }
 
-func sendMsg(addr net.Addr, msg string, request string) error {
+func sendMsg(addr net.Addr, msg string, request string, errorC chan ErrorMessage) error {
 	//Connect to addr
 	connectAddr := strings.Split(addr.String(), ":")[0] + ":8888"
 	conn, err := net.Dial("tcp", connectAddr)
 	if err != nil {
 		log.Println("Client: conn err :", err, addr.String())
-		log.Println("Client: could not connect to:", addr.String())
+		errorC <- ErrorMessage{Err: err, Msg: "Client: connection error to " + addr.String()}
 		return err
 	}
 	defer conn.Close()
@@ -131,6 +135,8 @@ func sendMsg(addr net.Addr, msg string, request string) error {
 	_, err = conn.Write([]byte(request + ":" + msg))
 	if err != nil {
 		log.Println("Client: could not write request type cause of:", err)
+		errorC <- ErrorMessage{Err: err, Msg: "Client: connection error to " + addr.String()}
+		return err
 	}
 	log.Println("Client: did write request type and send msg to", addr.String())
 	return nil
