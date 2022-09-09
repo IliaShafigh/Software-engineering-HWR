@@ -10,6 +10,7 @@ import (
 
 func main() {
 	outboundAddr := contivity.TcpAddr(contivity.GetOutboundIP())
+	_ = outboundAddr
 	chatContent := make([]string, 0)
 
 	chatContent = append(chatContent, "Take care of each other and watch your drink")
@@ -19,10 +20,16 @@ func main() {
 		ChatContent: chatContent,
 		UserAddr:    []net.Addr{},
 		BlockedAddr: []net.Addr{},
+		UserNames:   make(map[string]string),
+		UserName:    "",
 	}
+	//Fill own information
+	cStatus.UserAddr = append(cStatus.UserAddr, &outboundAddr)
+	//Create channel communication
 	refresh := make(chan bool)
 	cStatusC := make(chan *contivity.ChatroomStatus)
 	errorC := make(chan contivity.ErrorMessage)
+	//CStatus Management
 	go manageCStatus(&cStatus, cStatusC)
 
 	//__________________________________________________________________
@@ -35,7 +42,7 @@ func main() {
 	//start server
 	go contivity.RunServer(l, cStatusC, refresh, errorC)
 	//Sync with yourself first
-	go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh, errorC)
+	//go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh, errorC)
 	//FYNE STUFF
 	a := gui.BuildApp(cStatusC, errorC, refresh)
 	a.Run()

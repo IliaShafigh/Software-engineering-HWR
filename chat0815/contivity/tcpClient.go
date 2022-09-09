@@ -19,8 +19,11 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	}
 	defer conn.Close()
 	log.Println("Client: connected successfully to:", conn.RemoteAddr().String())
-	log.Println("Client: writing request type...")
-	_, err = conn.Write([]byte("UXXX"))
+	log.Println("Client: writing request type with own name...")
+	tmp := <-cStatusC
+	cStatusC <- tmp
+	name := tmp.UserName
+	_, err = conn.Write([]byte("UXXX:" + name))
 	if err != nil {
 		log.Println("Client: could not write request type cause of:", err)
 		errorC <- ErrorMessage{Err: err, Msg: "Client: could not write request type to, " + addr.String()}
@@ -36,59 +39,18 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	}
 	log.Println("Client: Deconding seems to have worked")
 	log.Println("Client: this is the Status from Remote:")
-	log.Println("Client:", newCStatus.ChatContent)
-	log.Println("Client:", newCStatus.UserAddr)
-	log.Println("Client:", newCStatus.BlockedAddr)
+	PrintCStatus(*newCStatus)
 	log.Println("Client: this is the own Status")
-	tmp := <-cStatusC
+	tmp = <-cStatusC
 	cStatusC <- tmp
 	cStatus := *tmp
-	log.Println("Client:", cStatus.ChatContent)
-	log.Println("Client:", cStatus.UserAddr)
-	log.Println("Client:", cStatus.BlockedAddr)
-	cStatus = mergeCStatus(*newCStatus, cStatusC)
+	PrintCStatus(cStatus)
+	cStatus = mergeCStatus(*newCStatus, conn.RemoteAddr(), cStatusC)
 	log.Println("Client: this is the merged Status")
-	log.Println("Client:", cStatus.ChatContent)
-	log.Println("Client:", cStatus.UserAddr)
-	log.Println("Client:", cStatus.BlockedAddr)
+	PrintCStatus(cStatus)
 	refresh <- true
 	log.Println("Client: Got all updates, closing connection now")
 	return nil
-}
-
-func mergeCStatus(newStatus ChatroomStatus, cStatusC chan *ChatroomStatus) ChatroomStatus {
-	//ChatContent Merge
-	//TODO Improve chat merge
-	ownStatus := <-cStatusC
-	if len(ownStatus.ChatContent) >= len(newStatus.ChatContent) {
-		for _, msg := range ownStatus.ChatContent {
-			//Compare
-			//Do nothing because we assume that our chat is more advanced and we have the same messages
-			_ = msg
-		}
-	} else {
-		for i := len(ownStatus.ChatContent); i < len(newStatus.ChatContent); i++ {
-			newMsgs := newStatus.ChatContent
-			ownStatus.ChatContent = append(ownStatus.ChatContent, newMsgs[i])
-		}
-	}
-	//UserAddr Merge
-	for _, nAddr := range newStatus.UserAddr {
-		if !contains(ownStatus.UserAddr, nAddr) {
-			ownStatus.UserAddr = append(ownStatus.UserAddr, nAddr)
-		}
-
-	}
-
-	//BlockedAddr Merge
-	for _, nAddr := range newStatus.BlockedAddr {
-		if !contains(ownStatus.UserAddr, nAddr) {
-			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
-		}
-	}
-
-	cStatusC <- ownStatus
-	return *ownStatus
 }
 
 func contains(addrs []net.Addr, addr2 net.Addr) bool {
@@ -119,6 +81,16 @@ func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan E
 		}
 	}
 	return
+}
+func SendMessageToPrivate(msg string, addr net.Addr, errorC chan ErrorMessage) {
+	log.Println("Client: sending private message to", addr.String())
+	request := "NPMX"
+	err := sendMsg(addr, msg, request)
+	if err != nil {
+		errorC <- ErrorMessage{Err: err, Msg: "Could not send message to" + addr.String() + " | " + msg}
+		log.Println("Client: failed to send private Message to", addr.String())
+	}
+
 }
 
 func sendMsg(addr net.Addr, msg string, request string) error {

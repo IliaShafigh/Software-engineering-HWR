@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"fmt"
 	"fyne.io/fyne"
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/widget"
@@ -32,16 +33,29 @@ func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
 	var logs contivity.ErrorMessage
 	for {
 		logs = <-errorC
-		log.Println("HELLOOOOO")
 		go showLog(logs, a)
 	}
 }
 
 func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, name, ip string, mainWin, w fyne.Window) {
+	ownAddr := contivity.TcpAddr(contivity.GetOutboundIP())
+	//save name in cStatus
+	cStatus := <-cStatusC
+	if name != "" {
+		name = fmt.Sprintf("%-6s", name)
+		cStatus.UserName = name
+		cStatus.UserNames[contivity.AddrWithoutPort(&ownAddr)] = name
+	} else {
+		cStatusC <- cStatus
+		errorC <- contivity.ErrorMessage{Err: nil, Msg: "Please input your nickname"}
+		return
+	}
+	cStatusC <- cStatus
 	connIp := net.ParseIP(ip)
 	if connIp == nil && ip != "" {
 		log.Println("StartUp: wrong format of ip")
 	} else if ip == "" {
+		contivity.PrintCStatus(*cStatus)
 		w.Hide()
 		mainWin.Show()
 	} else {
@@ -53,7 +67,6 @@ func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan cont
 				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
 			}
 		}()
-
 		if <-check {
 			w.Hide()
 			mainWin.Show()
@@ -74,8 +87,8 @@ func ipEntryConfig(entry *widget.Entry) {
 func nameEntryConfig(entry *widget.Entry) {
 	entry.SetPlaceHolder("Enter your nick name")
 	entry.OnChanged = func(typed string) {
-		if len(typed) >= 20 {
-			entry.SetText(entry.Text[:15])
+		if len(typed) >= 6 {
+			entry.SetText(entry.Text[:6])
 		}
 	}
 }

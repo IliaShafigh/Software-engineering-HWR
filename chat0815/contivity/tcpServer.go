@@ -11,26 +11,8 @@ type ChatroomStatus struct {
 	ChatContent []string
 	UserAddr    []net.Addr
 	BlockedAddr []net.Addr
-}
-
-func AddUserAddr(newAddr net.Addr, cStatusC chan *ChatroomStatus) {
-	cStatus := <-cStatusC
-
-	for _, usrAddr := range cStatus.UserAddr {
-		if strings.Split(newAddr.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
-			//Addr is already in s.UserAddr so nothing happens
-			cStatusC <- cStatus
-			return
-		}
-
-	}
-	toAdd := net.TCPAddr{
-		IP:   net.ParseIP(strings.Split(newAddr.String(), ":")[0]),
-		Port: 8888,
-		Zone: "",
-	}
-	cStatus.UserAddr = append(cStatus.UserAddr, &toAdd)
-	cStatusC <- cStatus
+	UserNames   map[string]string //UserNames[AddrWithoutPort(net.Addr.String())]name
+	UserName    string
 }
 
 func RunServer(l net.Listener, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) {
@@ -70,12 +52,13 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		log.Println("SERVER: new Group Message requets")
 		msg := strings.TrimPrefix(string(tmp), request+":")
 		log.Println("SERVER: msg received was:", msg)
-		AddGroupMessage(msg, cStatusC)
+		AddGroupMessage(msg, conn.RemoteAddr(), cStatusC)
 		refresh <- true
 	case request == "UXXX":
 		log.Println("SERVER: new Update request, encoding now... ")
+		name := strings.TrimPrefix(string(tmp), request+":")
 		//Add Addr
-		AddUserAddr(conn.RemoteAddr(), cStatusC)
+		AddUserAddr(conn.RemoteAddr(), name, cStatusC)
 
 		cStatus := <-cStatusC
 		encoder := gob.NewEncoder(conn)
@@ -91,12 +74,32 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 	case request == "GBXX":
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), cStatusC)
-	case request == "NVKR":
+	case request == "NPMX":
+		//TODO NEW PRIVATE MESSAGE
 	case request == "NGR":
 	}
 
 }
 
+func AddUserAddr(newAddr net.Addr, name string, cStatusC chan *ChatroomStatus) {
+	cStatus := <-cStatusC
+	for _, usrAddr := range cStatus.UserAddr {
+		if strings.Split(newAddr.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
+			//Addr is already in s.UserAddr so nothing happens
+			cStatusC <- cStatus
+			return
+		}
+	}
+	toAdd := net.TCPAddr{
+		IP:   net.ParseIP(strings.Split(newAddr.String(), ":")[0]),
+		Port: 8888,
+		Zone: "",
+	}
+	cStatus.UserAddr = append(cStatus.UserAddr, &toAdd)
+
+	cStatus.UserNames[AddrWithoutPort(&toAdd)] = name
+	cStatusC <- cStatus
+}
 func RemoveUserAddr(toRemove net.Addr, cStatusC chan *ChatroomStatus) {
 	cStatus := <-cStatusC
 	for i, usrAddr := range cStatus.UserAddr {
@@ -109,13 +112,13 @@ func RemoveUserAddr(toRemove net.Addr, cStatusC chan *ChatroomStatus) {
 			log.Println(cStatus.UserAddr, "Removed ", toRemove.String())
 			return
 		}
-
 	}
 	cStatusC <- cStatus
 }
 
-func AddGroupMessage(msg string, cStatusC chan *ChatroomStatus) {
+func AddGroupMessage(msg string, senderAddr net.Addr, cStatusC chan *ChatroomStatus) {
 	cStatus := <-cStatusC
+	msg = cStatus.UserNames[AddrWithoutPort(senderAddr)] + ": " + msg
 	cStatus.ChatContent = append(cStatus.ChatContent, msg)
 	cStatusC <- cStatus
 }
@@ -131,4 +134,50 @@ func TcpAddr(ip net.IP) net.TCPAddr {
 type ErrorMessage struct {
 	Err error
 	Msg string
+}
+
+func mergeCStatus(newStatus ChatroomStatus, senderAddr net.Addr, cStatusC chan *ChatroomStatus) ChatroomStatus {
+	//ChatContent Merge
+	// TODO Improve chat merge maybe with timestamps
+	//
+	ownStatus := <-cStatusC
+	if len(ownStatus.ChatContent) >= len(newStatus.ChatContent) {
+		for _, msg := range ownStatus.ChatContent {
+			//Compare
+			//Do nothing because we assume that our chat is more advanced and we have the same messages
+			_ = msg
+		}
+	} else {
+		for i := len(ownStatus.ChatContent); i < len(newStatus.ChatContent); i++ {
+			newMsgs := newStatus.ChatContent
+			ownStatus.ChatContent = append(ownStatus.ChatContent, newMsgs[i])
+		}
+	}
+	//UserAddr Merge
+	for _, nAddr := range newStatus.UserAddr {
+		if !contains(ownStatus.UserAddr, nAddr) {
+			ownStatus.UserAddr = append(ownStatus.UserAddr, nAddr)
+		}
+	}
+	//BlockedAddr Merge
+	for _, nAddr := range newStatus.BlockedAddr {
+		if !contains(ownStatus.UserAddr, nAddr) {
+			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
+		}
+	}
+	ownStatus.UserNames[AddrWithoutPort(senderAddr)] = newStatus.UserName
+	cStatusC <- ownStatus
+	return *ownStatus
+}
+
+func AddrWithoutPort(addr net.Addr) string {
+	return strings.Split(addr.String(), ":")[0]
+}
+
+func PrintCStatus(cStatus ChatroomStatus) {
+	log.Println("ChatContent", cStatus.ChatContent)
+	log.Println("UserAddr", cStatus.UserAddr)
+	log.Println("BlockedAddr", cStatus.BlockedAddr)
+	log.Println("UserNames", cStatus.UserNames)
+	log.Println("UserName", cStatus.UserName)
 }
