@@ -31,6 +31,7 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	log.Println("Client: did write request type, trying to decode now...")
 
 	decoder := gob.NewDecoder(conn)
+	gob.Register(&net.TCPAddr{})
 	newCStatus := &ChatroomStatus{}
 	err = decoder.Decode(newCStatus)
 	if err != nil {
@@ -54,7 +55,11 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 }
 
 func contains(addrs []net.Addr, addr2 net.Addr) bool {
+	if addr2 == nil {
+		return false
+	}
 	for _, addr := range addrs {
+
 		if addr.String() == addr2.String() {
 			return true
 		}
