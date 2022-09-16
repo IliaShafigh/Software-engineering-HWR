@@ -20,7 +20,7 @@ func main() {
 		ChatContent: chatContent,
 		UserAddr:    []net.Addr{},
 		BlockedAddr: []net.Addr{},
-		UserNames:   make(map[string]string),
+		UserNames:   make(map[string]string), //map[IPADRESSE]Name
 		UserName:    "",
 	}
 	//Fill own information

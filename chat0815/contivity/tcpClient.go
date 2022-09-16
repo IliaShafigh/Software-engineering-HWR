@@ -132,7 +132,6 @@ func GetOutboundIP() net.IP {
 func SayGoodBye(cStatusC chan *ChatroomStatus) {
 	log.Println("Saying goodbye now!")
 	request := "GBXX"
-
 	tmp := <-cStatusC
 	userAddresses := tmp.UserAddr
 	cStatusC <- tmp
