@@ -73,6 +73,11 @@ func inputEntryConfiguration(a fyne.App, cStatusC chan *contivity.ChatroomStatus
 			//input.Disable()
 			input.SetText(input.Text[:49])
 		}
+		if input.Text == "/privateDebug" {
+			input.SetText("")
+			log.Println("DEBUG PRIVATE CHAT")
+			go openRealPrivateWin(a, cStatusC, "", "NONAME")
+		}
 		if input.Text == "/privateChat" {
 			input.SetText("")
 			log.Println("Private Chat Please")

@@ -4,6 +4,7 @@ import (
 	"chat0815/contivity"
 	"fyne.io/fyne"
 	"fyne.io/fyne/container"
+	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
 )
 
@@ -32,7 +33,7 @@ func OpenPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus) {
 					obj.(*widget.Button).SetText(elem)
 					obj.(*widget.Button).OnTapped = func() {
 						listWin.Hide()
-						openRealPrivateWin(a, cStatusC, key)
+						openRealPrivateWin(a, cStatusC, key, elem)
 					}
 					return
 				} else if elem == cStatus.UserName {
@@ -48,10 +49,33 @@ func OpenPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus) {
 	listWin.Show()
 }
 
-func openRealPrivateWin(a fyne.App, c chan *contivity.ChatroomStatus, key string) {
-	privateWin := a.NewWindow("List")
+func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, addr string, name string) {
+	privateWin := a.NewWindow("Private Chat " + name)
 	privateWin.Resize(fyne.NewSize(600, 600))
 	privateWin.SetFixedSize(true)
+	privateChat := []string{"This is private Chat"}
 
+	privateChatDisplay := widget.NewList(
+		func() int {
+			return len(privateChat)
+		},
+		func() fyne.CanvasObject {
+			return widget.NewLabel("Templat")
+		},
+		func(i widget.ListItemID, obj fyne.CanvasObject) {
+			obj.(*widget.Label).SetText(privateChat[len(privateChat)-1-i])
+		},
+	)
+
+	privEntry := widget.NewEntry()
+
+	privSendButton := widget.NewButton("Send", func() {
+		privateChat = append(privateChat, privEntry.Text)
+		privEntry.SetText("")
+		privateChatDisplay.Refresh()
+	})
+	lowerBox := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), privEntry, privSendButton)
+	content := fyne.NewContainerWithLayout(layout.NewBorderLayout(layout.NewSpacer(), lowerBox, layout.NewSpacer(), layout.NewSpacer()), lowerBox, privateChatDisplay)
+	privateWin.SetContent(content)
 	privateWin.Show()
 }
