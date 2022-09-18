@@ -62,7 +62,6 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 			//TODO SEND NEW IP TO ALL CLIENTS
 			defer GUXX(cStatusC)
 		}
-
 		cStatus := <-cStatusC
 		encoder := gob.NewEncoder(conn)
 		gob.Register(&net.TCPAddr{})
@@ -84,7 +83,6 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		if err != nil {
 			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
 		}
-
 	case request == "GBXX":
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), cStatusC)

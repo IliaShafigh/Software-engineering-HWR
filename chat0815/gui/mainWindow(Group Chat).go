@@ -95,12 +95,3 @@ func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
 		go showLog(logs, a)
 	}
 }
-
-//TODO REFARCTOR TO OWN .go FILE
-func OpenPrivateWin(a fyne.App, c chan *contivity.ChatroomStatus) {
-	privateWin := a.NewWindow("Private Chat")
-	privateWin.Resize(fyne.NewSize(600, 600))
-	privateWin.SetFixedSize(true)
-
-	privateWin.Show()
-}
