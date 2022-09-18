@@ -12,9 +12,8 @@ import (
 
 func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
-	startUpWin := a.NewWindow("connect")
+	startUpWin := a.NewWindow("configure start up")
 	startUpWin.SetFixedSize(true)
-	go manageLogWindow(errorC, a)
 
 	nameEntry := widget.NewEntry()
 	nameEntryConfig(nameEntry)
@@ -29,46 +28,39 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity
 	return startUpWin
 }
 
-func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
-	var logs contivity.ErrorMessage
-	for {
-		logs = <-errorC
-		go showLog(logs, a)
-	}
-}
-
-func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, name, ip string, mainWin, w fyne.Window) {
+//TODO MAKE CLEANER
+func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, name, ip string, mainWin, startUpWin fyne.Window) {
 	ownAddr := contivity.TcpAddr(contivity.GetOutboundIP())
 	//save name in cStatus
 	cStatus := <-cStatusC
 	if name != "" {
 		name = fmt.Sprintf("%-6s", name)
 		cStatus.UserName = name
-		cStatus.UserNames[contivity.AddrWithoutPort(&ownAddr)] = name
+		cStatus.UserNames[contivity.AddrWithoutPort(ownAddr)] = name
+		cStatusC <- cStatus
 	} else {
 		cStatusC <- cStatus
 		errorC <- contivity.ErrorMessage{Err: nil, Msg: "Please input your nickname"}
 		return
 	}
-	cStatusC <- cStatus
 	connIp := net.ParseIP(ip)
 	if connIp == nil && ip != "" {
 		log.Println("StartUp: wrong format of ip")
 	} else if ip == "" {
 		contivity.PrintCStatus(*cStatus)
-		w.Hide()
+		startUpWin.Hide()
 		mainWin.Show()
 	} else {
 		check := make(chan bool)
 		connAddr := contivity.TcpAddr(connIp)
 		go func() {
-			err := contivity.GetStatusUpdate(&connAddr, cStatusC, check, errorC)
+			err := contivity.UXXX(connAddr, cStatusC, check, errorC)
 			if err != nil {
 				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
 			}
 		}()
 		if <-check {
-			w.Hide()
+			startUpWin.Hide()
 			mainWin.Show()
 		}
 

@@ -24,7 +24,7 @@ func main() {
 		UserName:    "",
 	}
 	//Fill own information
-	cStatus.UserAddr = append(cStatus.UserAddr, &outboundAddr)
+	cStatus.UserAddr = append(cStatus.UserAddr, outboundAddr)
 	//Create channel communication
 	refresh := make(chan bool)
 	cStatusC := make(chan *contivity.ChatroomStatus)
@@ -41,8 +41,6 @@ func main() {
 	defer l.Close()
 	//start server
 	go contivity.RunServer(l, cStatusC, refresh, errorC)
-	//Sync with yourself first
-	//go contivity.GetStatusUpdate(&outboundAddr, cStatusC, refresh, errorC)
 	//FYNE STUFF
 	a := gui.BuildApp(cStatusC, errorC, refresh)
 	a.Run()
