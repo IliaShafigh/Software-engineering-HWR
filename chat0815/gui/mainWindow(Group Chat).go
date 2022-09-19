@@ -7,7 +7,6 @@ import (
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
-	"log"
 )
 
 func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, refresh chan bool) fyne.App {
@@ -21,28 +20,13 @@ func BuildApp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.Err
 	mainWin.SetMaster()
 	mainWin.SetOnClosed(func() { contivity.GBXX(cStatusC) })
 	startUpWin := BuildStartUp(cStatusC, errorC, a, mainWin)
-	chatDisplay := widget.NewList(
-		func() int {
-			cStatus := <-cStatusC
-			cStatusC <- cStatus
-			return len(cStatus.ChatContent)
-		},
-		func() fyne.CanvasObject {
-			return widget.NewLabel("Template")
-		},
-		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			cStatus := <-cStatusC
-			contents := cStatus.ChatContent
-			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
-			cStatusC <- cStatus
-		},
-	)
+	chatDisplay := mainChatDisplayConfiguration(cStatusC)
 	//Manages Refresh requests
 	go manageChatDisplayRefresh(refresh, chatDisplay)
 
 	//Input Chat Console
-	input := widget.NewEntry()
-	inputEntryConfiguration(a, cStatusC, input)
+	input := newMainInputEntry(cStatusC, errorC)
+	mainInputEntryConfiguration(a, cStatusC, input)
 	//Send Button
 	send := widget.NewButton("Send it!", func() {
 		sendButtonClicked(input, cStatusC, errorC)
@@ -64,28 +48,7 @@ func manageChatDisplayRefresh(refresh chan bool, chatDisplay *widget.List) {
 		}
 	}
 }
-
-//funktionen: Placeholder, TODO Cap Max Letters
-func inputEntryConfiguration(a fyne.App, cStatusC chan *contivity.ChatroomStatus, input *widget.Entry) {
-	input.SetPlaceHolder("Write a Message")
-	input.OnChanged = func(typed string) {
-		if len(typed) >= 50 {
-			//input.Disable()
-			input.SetText(input.Text[:49])
-		}
-		if input.Text == "/privateDebug" {
-			input.SetText("")
-			log.Println("DEBUG PRIVATE CHAT")
-			go openRealPrivateWin(a, cStatusC, "", "NONAME")
-		}
-		if input.Text == "/privateChat" {
-			input.SetText("")
-			log.Println("Private Chat Please")
-			go OpenPrivateWin(a, cStatusC)
-		}
-	}
-}
-func sendButtonClicked(input *widget.Entry, cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage) {
+func sendButtonClicked(input *mainInputEntry, cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage) {
 	if input.Text == "" {
 		return
 	}

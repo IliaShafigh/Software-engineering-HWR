@@ -2,10 +2,12 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"fmt"
 	"fyne.io/fyne"
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
+	"log"
 )
 
 //TODO REFARCTOR TO OWN .go FILE
@@ -67,7 +69,7 @@ func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, add
 		},
 	)
 
-	privEntry := widget.NewEntry()
+	privEntry := newPrivEntry(cStatusC)
 
 	privSendButton := widget.NewButton("Send", func() {
 		privateChat = append(privateChat, privEntry.Text)
@@ -78,4 +80,34 @@ func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, add
 	content := fyne.NewContainerWithLayout(layout.NewBorderLayout(layout.NewSpacer(), lowerBox, layout.NewSpacer(), layout.NewSpacer()), lowerBox, privateChatDisplay)
 	privateWin.SetContent(content)
 	privateWin.Show()
+}
+
+type privateEntry struct {
+	widget.Entry
+	cStatusC chan *contivity.ChatroomStatus
+}
+
+func (e *privateEntry) onEnter() {
+	fmt.Println(e.Entry.Text)
+	e.Entry.SetText("")
+	cStatus := <-e.cStatusC
+	log.Println(cStatus.ChatContent)
+	e.cStatusC <- cStatus
+}
+
+func newPrivEntry(cStatusC chan *contivity.ChatroomStatus) *privateEntry {
+	entry := &privateEntry{}
+	entry.ExtendBaseWidget(entry)
+	entry.cStatusC = cStatusC
+	return entry
+}
+
+func (e *privateEntry) KeyDown(key *fyne.KeyEvent) {
+	switch key.Name {
+	case fyne.KeyReturn:
+		e.onEnter()
+	default:
+		e.Entry.KeyDown(key)
+		fmt.Printf("Key %v pressed\n", key.Name)
+	}
 }
