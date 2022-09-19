@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) error {
+// UXXX Get Status Update request. Name is equal to request switch on tcpServer.go
+func UXXX(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) error {
 	//Connection
 	log.Println("Client: Trying to connect to", addr.String())
 	conn, err := net.Dial("tcp", addr.String())
@@ -54,22 +55,32 @@ func GetStatusUpdate(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan 
 	return nil
 }
 
-func contains(addrs []net.Addr, addr2 net.Addr) bool {
-	if addr2 == nil {
-		return false
-	}
-	for _, addr := range addrs {
+// GUXX sends Get Update Request to all Participants of own cStatus.
+//Request that all receivers send UXXX request to oneself.
+//Name is equal to request switch on tcpServer.go
+func GUXX(cStatusC chan *ChatroomStatus) {
+	log.Println("Client: sending GUXX Request to everybody now...")
+	request := "GUXX"
 
-		if addr.String() == addr2.String() {
-			return true
+	cStatus := <-cStatusC
+	userAdresses := cStatus.UserAddr
+	cStatusC <- cStatus
+	for _, addr := range userAdresses {
+		if TcpAddr(GetOutboundIP()).String() != addr.String() {
+			err := sendMsg(addr, "", request)
+			if err != nil {
+				//TODO if not reachable, delete from cStatus?
+				log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
+				continue
+			}
 		}
 	}
-	return false
 }
 
-//Send Message to all participants of the Group including oneself
+// NGMX sends Message to all group members. send to all participants of the Group including oneself
 //Updates of ChatDisplay should be implemented in tcpServer
-func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
+//Name is equal to request switch on tcpServer.go
+func NGMX(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
 	log.Println("Client: Sending Message to Group")
 	//errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
 	request := "NGMX"
@@ -87,6 +98,37 @@ func SendMessageToGroup(msg string, cStatusC chan *ChatroomStatus, errorC chan E
 	}
 	return
 }
+
+// GBXX Say Goodbye to all participants in your cStatus
+//Name is equal to request switch on tcpServer.go
+func GBXX(cStatusC chan *ChatroomStatus) {
+	log.Println("Saying goodbye now!")
+	request := "GBXX"
+	tmp := <-cStatusC
+	userAddresses := tmp.UserAddr
+	cStatusC <- tmp
+	for _, addr := range userAddresses {
+		err := sendMsg(addr, "", request)
+		if err != nil {
+			//TODO if not reachable, delete from cStatus?
+			log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
+			continue
+		}
+	}
+}
+func contains(addrs []net.Addr, addr2 net.Addr) bool {
+	if addr2 == nil {
+		return false
+	}
+	for _, addr := range addrs {
+
+		if addr.String() == addr2.String() {
+			return true
+		}
+	}
+	return false
+}
+
 func SendMessageToPrivate(msg string, addr net.Addr, errorC chan ErrorMessage) {
 	log.Println("Client: sending private message to", addr.String())
 	request := "NPMX"
@@ -117,7 +159,7 @@ func sendMsg(addr net.Addr, msg string, request string) error {
 	return nil
 }
 
-//Need own IP for many reasons
+// GetOutboundIP we need own IP for many reasons
 func GetOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
@@ -127,21 +169,4 @@ func GetOutboundIP() net.IP {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
-}
-
-func SayGoodBye(cStatusC chan *ChatroomStatus) {
-	log.Println("Saying goodbye now!")
-	request := "GBXX"
-
-	tmp := <-cStatusC
-	userAddresses := tmp.UserAddr
-	cStatusC <- tmp
-	for _, addr := range userAddresses {
-		err := sendMsg(addr, "", request)
-		if err != nil {
-			//TODO if not reachable, delete from cStatus?
-			log.Println("Client: Could not send Group Message to:", addr.String(), ", SKIPPING")
-			continue
-		}
-	}
 }

@@ -58,8 +58,10 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		log.Println("SERVER: new Update request, encoding now... ")
 		name := strings.TrimPrefix(string(tmp), request+":")
 		//Add Addr
-		AddUserAddr(conn.RemoteAddr(), name, cStatusC)
-
+		if AddUserAddr(conn.RemoteAddr(), name, cStatusC) {
+			//TODO SEND NEW IP TO ALL CLIENTS
+			defer GUXX(cStatusC)
+		}
 		cStatus := <-cStatusC
 		encoder := gob.NewEncoder(conn)
 		gob.Register(&net.TCPAddr{})
@@ -70,7 +72,17 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 		}
 		cStatusC <- cStatus
 		log.Println("SERVER: Encoding is over!")
-
+	case request == "GUXX":
+		log.Println("SERVER: new Get Update request, requesting now...")
+		addr := net.TCPAddr{
+			IP:   net.ParseIP(AddrWithoutPort(conn.RemoteAddr())),
+			Port: 8888,
+			Zone: "",
+		}
+		err = UXXX(&addr, cStatusC, refresh, errorC)
+		if err != nil {
+			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
+		}
 	case request == "GBXX":
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), cStatusC)
@@ -81,13 +93,15 @@ func HandleRequest(conn net.Conn, cStatusC chan *ChatroomStatus, refresh chan bo
 
 }
 
-func AddUserAddr(newAddr net.Addr, name string, cStatusC chan *ChatroomStatus) {
+//Adds User IP and Name to CStatus.
+//Returns false if the address was already added.
+func AddUserAddr(newAddr net.Addr, name string, cStatusC chan *ChatroomStatus) bool {
 	cStatus := <-cStatusC
 	for _, usrAddr := range cStatus.UserAddr {
 		if strings.Split(newAddr.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
 			//Addr is already in s.UserAddr so nothing happens
 			cStatusC <- cStatus
-			return
+			return false
 		}
 	}
 	toAdd := net.TCPAddr{
@@ -99,6 +113,7 @@ func AddUserAddr(newAddr net.Addr, name string, cStatusC chan *ChatroomStatus) {
 
 	cStatus.UserNames[AddrWithoutPort(&toAdd)] = name
 	cStatusC <- cStatus
+	return true
 }
 func RemoveUserAddr(toRemove net.Addr, cStatusC chan *ChatroomStatus) {
 	cStatus := <-cStatusC
@@ -123,8 +138,8 @@ func AddGroupMessage(msg string, senderAddr net.Addr, cStatusC chan *ChatroomSta
 	cStatusC <- cStatus
 }
 
-func TcpAddr(ip net.IP) net.TCPAddr {
-	return net.TCPAddr{
+func TcpAddr(ip net.IP) *net.TCPAddr {
+	return &net.TCPAddr{
 		IP:   ip,
 		Port: 8888,
 		Zone: "",
