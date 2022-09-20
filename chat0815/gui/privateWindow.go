@@ -4,57 +4,14 @@ import (
 	"chat0815/contivity"
 	"fmt"
 	"fyne.io/fyne"
-	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
 	"log"
 )
 
-//TODO REFARCTOR TO OWN .go FILE
-func OpenPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus) {
-	listWin := a.NewWindow("List")
-	listWin.Resize(fyne.NewSize(600, 600))
-	listWin.SetFixedSize(true)
+//TODO Implement Tabs to conclude
+func openPrivateTab(chatC chan contivity.ChatStorage, addr string) {
 
-	list := widget.NewList(
-		func() int {
-			cStatus := <-cStatusC
-			cStatusC <- cStatus
-			//return with -1 because our own userName is in there as well
-			return len(cStatus.UserNames) - 1
-		},
-		func() fyne.CanvasObject {
-			return widget.NewButton("Template", func() {})
-		},
-		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			cStatus := <-cStatusC
-			cStatusC <- cStatus
-			j := 0
-			for key, elem := range cStatus.UserNames {
-				if j == i && elem != cStatus.UserName {
-					obj.(*widget.Button).SetText(elem)
-					obj.(*widget.Button).OnTapped = func() {
-						listWin.Hide()
-						openRealPrivateWin(a, cStatusC, key, elem)
-					}
-					return
-				} else if elem == cStatus.UserName {
-					//Dont add to j if we found our own name, because we dont want to add our name
-					continue
-				}
-				j++
-			}
-		},
-	)
-	content := container.NewMax(list)
-	listWin.SetContent(content)
-	listWin.Show()
-}
-
-func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, addr string, name string) {
-	privateWin := a.NewWindow("Private Chat " + name)
-	privateWin.Resize(fyne.NewSize(600, 600))
-	privateWin.SetFixedSize(true)
 	privateChat := []string{"This is private Chat"}
 
 	privateChatDisplay := widget.NewList(
@@ -68,7 +25,8 @@ func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, add
 			obj.(*widget.Label).SetText(privateChat[len(privateChat)-1-i])
 		},
 	)
-
+	//TODO DELETE LATETR
+	cStatusC := make(chan *contivity.GroupChatStatus)
 	privEntry := newPrivEntry(cStatusC)
 
 	privSendButton := widget.NewButton("Send", func() {
@@ -78,13 +36,12 @@ func openRealPrivateWin(a fyne.App, cStatusC chan *contivity.ChatroomStatus, add
 	})
 	lowerBox := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), privEntry, privSendButton)
 	content := fyne.NewContainerWithLayout(layout.NewBorderLayout(layout.NewSpacer(), lowerBox, layout.NewSpacer(), layout.NewSpacer()), lowerBox, privateChatDisplay)
-	privateWin.SetContent(content)
-	privateWin.Show()
+	_ = content
 }
 
 type privateEntry struct {
 	widget.Entry
-	cStatusC chan *contivity.ChatroomStatus
+	cStatusC chan *contivity.GroupChatStatus
 }
 
 func (e *privateEntry) onEnter() {
@@ -95,7 +52,7 @@ func (e *privateEntry) onEnter() {
 	e.cStatusC <- cStatus
 }
 
-func newPrivEntry(cStatusC chan *contivity.ChatroomStatus) *privateEntry {
+func newPrivEntry(cStatusC chan *contivity.GroupChatStatus) *privateEntry {
 	entry := &privateEntry{}
 	entry.ExtendBaseWidget(entry)
 	entry.cStatusC = cStatusC

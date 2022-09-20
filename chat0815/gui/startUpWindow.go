@@ -10,7 +10,7 @@ import (
 	"net"
 )
 
-func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
+func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
 	startUpWin := a.NewWindow("configure start up")
 	startUpWin.SetFixedSize(true)
@@ -21,7 +21,7 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity
 	ipEntryConfig(ipEntry)
 	//confirm button
 	conf := widget.NewButton("Confirm", func() {
-		confButtonClicked(cStatusC, errorC, nameEntry.Text, ipEntry.Text, mainWin, startUpWin)
+		confButtonClicked(chatC, errorC, nameEntry.Text, ipEntry.Text, mainWin, startUpWin)
 	})
 	content := container.NewVBox(nameEntry, ipEntry, conf)
 	startUpWin.SetContent(content)
@@ -29,17 +29,18 @@ func BuildStartUp(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity
 }
 
 //TODO MAKE CLEANER
-func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage, name, ip string, mainWin, startUpWin fyne.Window) {
+func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage, name, ip string, mainWin, startUpWin fyne.Window) {
 	ownAddr := contivity.TcpAddr(contivity.GetOutboundIP())
 	//save name in cStatus
-	cStatus := <-cStatusC
+	chats := <-chatC
+	gcStatus := <-chats.GcStatusC
 	if name != "" {
 		name = fmt.Sprintf("%-6s", name)
-		cStatus.UserName = name
-		cStatus.UserNames[contivity.AddrWithoutPort(ownAddr)] = name
-		cStatusC <- cStatus
+		gcStatus.UserName = name
+		gcStatus.UserNames[contivity.AddrWithoutPort(ownAddr)] = name
+		chats.GcStatusC <- gcStatus
 	} else {
-		cStatusC <- cStatus
+		chats.GcStatusC <- gcStatus
 		errorC <- contivity.ErrorMessage{Err: nil, Msg: "Please input your nickname"}
 		return
 	}
@@ -47,14 +48,14 @@ func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan cont
 	if connIp == nil && ip != "" {
 		log.Println("StartUp: wrong format of ip")
 	} else if ip == "" {
-		contivity.PrintCStatus(*cStatus)
+		contivity.PrintCStatus(*gcStatus)
 		startUpWin.Hide()
 		mainWin.Show()
 	} else {
 		check := make(chan bool)
 		connAddr := contivity.TcpAddr(connIp)
 		go func() {
-			err := contivity.UXXX(connAddr, cStatusC, check, errorC)
+			err := contivity.UXXX(connAddr, chats.GcStatusC, check, errorC)
 			if err != nil {
 				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
 			}
@@ -63,8 +64,8 @@ func confButtonClicked(cStatusC chan *contivity.ChatroomStatus, errorC chan cont
 			startUpWin.Hide()
 			mainWin.Show()
 		}
-
 	}
+	chatC <- chats
 }
 
 func ipEntryConfig(entry *widget.Entry) {

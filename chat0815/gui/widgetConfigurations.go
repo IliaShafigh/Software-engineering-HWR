@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func mainChatDisplayConfiguration(cStatusC chan *contivity.ChatroomStatus) *widget.List {
+func groupChatDisplayConfiguration(cStatusC chan *contivity.GroupChatStatus) *widget.List {
 	mainChatDisplay := widget.NewList(
 		func() int {
 			cStatus := <-cStatusC
@@ -27,33 +27,38 @@ func mainChatDisplayConfiguration(cStatusC chan *contivity.ChatroomStatus) *widg
 	return mainChatDisplay
 }
 
-func mainInputEntryConfiguration(a fyne.App, cStatusC chan *contivity.ChatroomStatus, input *mainInputEntry) {
-	input.SetPlaceHolder("Write a Message")
-	input.OnChanged = func(typed string) {
-		if len(typed) >= 50 {
-			//input.Disable()
-			input.SetText(input.Text[:49])
-		}
-		if input.Text == "/privateDebug" {
-			input.SetText("")
-			log.Println("DEBUG PRIVATE CHAT")
-			go openRealPrivateWin(a, cStatusC, "", "NONAME")
-		}
-		if input.Text == "/privateChat" {
-			input.SetText("")
-			log.Println("Private Chat Please")
-			go OpenPrivateWin(a, cStatusC)
-		}
-	}
-}
-
-type mainInputEntry struct {
+type groupInputEntry struct {
 	widget.Entry
-	cStatusC chan *contivity.ChatroomStatus
+	cStatusC chan *contivity.GroupChatStatus
 	errorC   chan contivity.ErrorMessage
 }
 
-func (e *mainInputEntry) onEnter() {
+func newGroupInputEntry(cStatusC chan *contivity.GroupChatStatus, errorC chan contivity.ErrorMessage) *groupInputEntry {
+	entry := &groupInputEntry{}
+	entry.ExtendBaseWidget(entry)
+	entry.cStatusC = cStatusC
+	entry.errorC = errorC
+
+	entry.SetPlaceHolder("Write a Message")
+	entry.OnChanged = func(typed string) {
+		if len(typed) >= 50 {
+			entry.SetText(entry.Text[:49])
+		}
+		if entry.Text == "/privateDebug" {
+			entry.SetText("")
+			log.Println("DEBUG PRIVATE CHAT")
+			//go openPrivateTab(a, cStatusC, "", "NONAME")
+		}
+		if entry.Text == "/privateChat" {
+			entry.SetText("")
+			log.Println("Private Chat Please")
+			//go OpenPrivateWin(a, cStatusC)
+		}
+	}
+	return entry
+}
+
+func (e *groupInputEntry) onEnter() {
 	if e.Entry.Text == "" {
 		return
 	}
@@ -61,15 +66,7 @@ func (e *mainInputEntry) onEnter() {
 	e.Entry.SetText("")
 }
 
-func newMainInputEntry(cStatusC chan *contivity.ChatroomStatus, errorC chan contivity.ErrorMessage) *mainInputEntry {
-	entry := &mainInputEntry{}
-	entry.ExtendBaseWidget(entry)
-	entry.cStatusC = cStatusC
-	entry.errorC = errorC
-	return entry
-}
-
-func (e *mainInputEntry) KeyDown(key *fyne.KeyEvent) {
+func (e *groupInputEntry) KeyDown(key *fyne.KeyEvent) {
 	switch key.Name {
 	case fyne.KeyReturn:
 		e.onEnter()
