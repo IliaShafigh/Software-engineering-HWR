@@ -2,6 +2,7 @@ package contivity
 
 import (
 	"encoding/gob"
+	"fyne.io/fyne"
 	"fyne.io/fyne/container"
 	"log"
 	"net"
@@ -9,24 +10,43 @@ import (
 )
 
 type GroupChat struct {
-	*container.TabItem // corresponding TabItem with display and entry
+	*container.TabItem // TabItem with display and entry
 	GcStatusC          chan *GroupChatStatus
 	Refresh            chan bool
 }
 type ChatStorage struct {
 	*container.AppTabs // corresponding apptabs in which our chats tabitems are stored
+	*fyne.Container    // the left side of our window, so called navigation
 	*GroupChat
 	Private []*PrivateChat
 }
-type PrivateChat struct {
-}
-
 type GroupChatStatus struct {
 	ChatContent []string
 	UserAddr    []net.Addr
 	BlockedAddr []net.Addr
 	UserNames   map[string]string //UserNames[AddrWithoutPort(net.Addr.String())]name
+	UserName    string            //OWN NAME
+}
+
+type PrivateChat struct {
+	*container.TabItem // TabItem with display and Entry
+	pvStatusC          chan *PrivateChatStatus
+	Refresh            chan bool       //Refreshes Display
+	Navigation         *fyne.Container //should include buttons for Hung, Hai und Ilia
+}
+
+type PrivateChatStatus struct {
+	ChatContent []string
+	UserAddr    net.Addr
+	Ttt         *GameStatus
+	Sv          *GameStatus
+	FriendName  string
 	UserName    string
+}
+
+type GameStatus struct {
+	MyTurn  bool
+	Running bool
 }
 
 type ErrorMessage struct {
@@ -199,7 +219,7 @@ func mergeCStatus(newStatus GroupChatStatus, senderAddr net.Addr, gcStatusC chan
 			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
 		}
 	}
-	//todo MERGE  needs imrpovement. No usernames are merges
+	//TODO MERGE  needs imrpovement. No usernames are merges
 	ownStatus.UserNames[AddrWithoutPort(senderAddr)] = newStatus.UserName
 	gcStatusC <- ownStatus
 	return *ownStatus
