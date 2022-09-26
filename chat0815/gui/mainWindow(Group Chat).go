@@ -7,7 +7,6 @@ import (
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
-	"log"
 	"sort"
 )
 
@@ -21,16 +20,16 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 	mainWin.Resize(fyne.NewSize(1200, 600))
 	mainWin.SetFixedSize(true)
 	mainWin.SetMaster()
-	//mainWin.SetOnClosed(func() { contivity.GBXX(cStatusC) })
-
-	navigation := fyne.NewContainerWithoutLayout()
-	//navigation := newGroupNavigation(chatC)//TODO LEADS TO WEIRD DEADLOCK WITHOUT ERROR
-	groupChatTab := newGroupChatTab(chatC, errorC)
-	tabsContainer := container.NewAppTabs(groupChatTab)
 	chats := <-chatC
-	chats.AppTabs = tabsContainer
-	chats.Container = navigation
-	tabsContainer.OnChanged = func(tab *container.TabItem) {
+	chatC <- chats
+	mainWin.SetOnClosed(func() { contivity.GBXX(chats.GcStatusC) })
+
+	newGroupChatTab(chatC, errorC)
+	newGroupChatNavigation(chatC)
+
+	chats = <-chatC
+	chats.AppTabs = container.NewAppTabs(chats.GroupChat.TabItem)
+	chats.AppTabs.OnChanged = func(tab *container.TabItem) {
 		if tab.Text == "Group Chat" {
 			//chats := <-chatC
 			//chats.Container = newGroupNavigation(chatC) //could save the navigation of group tab in chatstorage?
@@ -41,53 +40,14 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 			//chatC <- chats
 		}
 	}
+	content := container.NewHSplit(chats.Navigation, chats.AppTabs)
 	chatC <- chats
 
-	content := container.NewHSplit(navigation, tabsContainer)
-	log.Println(navigation.MinSize().Width)
 	content.SetOffset(0.1)
 	mainWin.SetContent(content)
 	startUpWin := BuildStartUp(chatC, errorC, a, mainWin)
 	startUpWin.Show()
 	return a
-}
-
-func newGroupNavigation(chatC chan contivity.ChatStorage) *fyne.Container {
-	list := widget.NewList(
-		func() int {
-			//TODO LEADS TO WEIRD DEADLOCK WITHOUT ERROR
-			log.Println("HELLO")
-			chats := <-chatC
-			log.Println("BYE")
-			gcStatus := <-chats.GcStatusC
-			chats.GcStatusC <- gcStatus
-			chatC <- chats
-			return len(gcStatus.UserNames)
-		},
-		func() fyne.CanvasObject {
-			return widget.NewButton("Template", func() {})
-		},
-		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			chats := <-chatC
-			gcStatus := <-chats.GcStatusC
-			users := GetSortedKeyMap(gcStatus.UserNames)
-			for j, userAddr := range users {
-				if j == i {
-					obj.(*widget.Button).SetText(gcStatus.UserNames[userAddr])
-					obj.(*widget.Button).OnTapped = func() {
-						openPrivateTab(chatC, userAddr)
-					}
-					obj.(*widget.Button).Refresh()
-					chats.GcStatusC <- gcStatus
-					chatC <- chats
-					return
-				}
-			}
-			chats.GcStatusC <- gcStatus
-			chatC <- chats
-		},
-	)
-	return container.NewMax(list)
 }
 
 //GetSortedKeyMap iterates over the given map and returns a sorted slice of its keys(IP adresses)
@@ -105,21 +65,21 @@ func manageChatStorage(chatC chan contivity.ChatStorage) {
 	go manageGcStatusC(gcStatusC)
 
 	groupChat := contivity.GroupChat{
-		TabItem:   nil,
-		GcStatusC: gcStatusC,
-		Refresh:   nil,
+		TabItem:    &container.TabItem{},
+		Navigation: &fyne.Container{},
+		GcStatusC:  gcStatusC,
+		Refresh:    make(chan bool),
 	}
 	chats := contivity.ChatStorage{
 		AppTabs:   &container.AppTabs{},
-		Container: &fyne.Container{},
 		GroupChat: &groupChat,
 		Private:   []*contivity.PrivateChat{},
 	}
 	for {
 		chatC <- chats
 		chats = <-chatC
-		chats.AppTabs.Refresh()
-		chats.Container.Refresh()
+		chats.AppTabs.Refresh() //TODO think about not refreshing/only refreshing what is needed
+		chats.GroupChat.Navigation.Refresh()
 	}
 }
 
@@ -139,25 +99,34 @@ func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
 	}
 }
 
-func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage) *container.TabItem {
+func newGroupChatNavigation(chatC chan contivity.ChatStorage) {
 	chats := <-chatC
-	gcStatusC := chats.GroupChat.GcStatusC
+	chatC <- chats
+	list := groupChatNavigationConfiguration(chatC, chats.GcStatusC)
+	navigation := fyne.NewContainerWithLayout(layout.NewMaxLayout(), list)
+	//Save navigation container in chat storage
+	chats = <-chatC
+	chats.GroupChat.Navigation = navigation
+	chatC <- chats
+}
 
-	chatDisplay := groupChatDisplayConfiguration(gcStatusC)
-	input := newGroupInputEntry(gcStatusC, errorC)
+func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage) {
+	chats := <-chatC
+	chatC <- chats
+	chatDisplay := newGroupChatDisplayConfiguration(chats.GcStatusC)
+	input := newGroupInputEntry(chats.GcStatusC, errorC)
 
 	lowerBox := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), input)
 	air := layout.NewSpacer()
 	chatContainer := fyne.NewContainerWithLayout(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
 	groupChatTab := container.NewTabItem("Group Chat", chatContainer)
-	chats.GroupChat.TabItem = groupChatTab
 	refresh := make(chan bool)
-	chats.GroupChat.Refresh = refresh
 	go manageDisplayRefresh(refresh, chatDisplay)
-	chats.GroupChat.Refresh <- true
-
+	// save the refresh chan and Tabitem in chat storage
+	chats = <-chatC
+	chats.GroupChat.Refresh = refresh
+	chats.GroupChat.TabItem = groupChatTab
 	chatC <- chats
-	return groupChatTab
 }
 
 func manageDisplayRefresh(refresh chan bool, display *widget.List) {

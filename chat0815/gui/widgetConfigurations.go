@@ -7,36 +7,59 @@ import (
 	"log"
 )
 
-func groupChatDisplayConfiguration(cStatusC chan *contivity.GroupChatStatus) *widget.List {
+func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus) *widget.List {
+	list := widget.NewList(
+		func() int {
+			gcStatus := <-gcStatusC
+			gcStatusC <- gcStatus
+			return len(gcStatus.UserNames)
+		},
+		func() fyne.CanvasObject {
+			return widget.NewButton("Template", func() {})
+		},
+		func(i widget.ListItemID, obj fyne.CanvasObject) {
+			gcStatus := <-gcStatusC
+			users := GetSortedKeyMap(gcStatus.UserNames)
+			for j, userAddr := range users {
+				if j == i {
+					obj.(*widget.Button).SetText(gcStatus.UserNames[userAddr])
+					obj.(*widget.Button).OnTapped = func() {
+						openPrivateTab(chatC, userAddr)
+					}
+					obj.(*widget.Button).Refresh()
+
+				}
+			}
+			gcStatusC <- gcStatus
+		},
+	)
+	return list
+}
+
+func newGroupChatDisplayConfiguration(gcStatusC chan *contivity.GroupChatStatus) *widget.List {
 	mainChatDisplay := widget.NewList(
 		func() int {
-			cStatus := <-cStatusC
-			cStatusC <- cStatus
-			return len(cStatus.ChatContent)
+			gcStatus := <-gcStatusC
+			gcStatusC <- gcStatus
+			return len(gcStatus.ChatContent)
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Template")
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			cStatus := <-cStatusC
-			contents := cStatus.ChatContent
+			gcStatus := <-gcStatusC
+			contents := gcStatus.ChatContent
 			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
-			cStatusC <- cStatus
+			gcStatusC <- gcStatus
 		},
 	)
 	return mainChatDisplay
 }
 
-type groupInputEntry struct {
-	widget.Entry
-	cStatusC chan *contivity.GroupChatStatus
-	errorC   chan contivity.ErrorMessage
-}
-
-func newGroupInputEntry(cStatusC chan *contivity.GroupChatStatus, errorC chan contivity.ErrorMessage) *groupInputEntry {
+func newGroupInputEntry(gcStatusC chan *contivity.GroupChatStatus, errorC chan contivity.ErrorMessage) *groupInputEntry {
 	entry := &groupInputEntry{}
 	entry.ExtendBaseWidget(entry)
-	entry.cStatusC = cStatusC
+	entry.gcStatusC = gcStatusC
 	entry.errorC = errorC
 
 	entry.SetPlaceHolder("Write a Message")
@@ -47,22 +70,28 @@ func newGroupInputEntry(cStatusC chan *contivity.GroupChatStatus, errorC chan co
 		if entry.Text == "/privateDebug" {
 			entry.SetText("")
 			log.Println("DEBUG PRIVATE CHAT")
-			//go openPrivateTab(a, cStatusC, "", "NONAME")
+			//TODO REMOVE THOSE WE HAVE NAVIGATION BUTTONS NOW
 		}
 		if entry.Text == "/privateChat" {
 			entry.SetText("")
 			log.Println("Private Chat Please")
-			//go OpenPrivateWin(a, cStatusC)
+			//TODO REMOVE THOSE WE HAVE NAVIGATION BUTTONS NOW
 		}
 	}
 	return entry
+}
+
+type groupInputEntry struct {
+	widget.Entry
+	gcStatusC chan *contivity.GroupChatStatus
+	errorC    chan contivity.ErrorMessage
 }
 
 func (e *groupInputEntry) onEnter() {
 	if e.Entry.Text == "" {
 		return
 	}
-	contivity.NGMX(e.Entry.Text, e.cStatusC, e.errorC)
+	contivity.NGMX(e.Entry.Text, e.gcStatusC, e.errorC)
 	e.Entry.SetText("")
 }
 

@@ -10,13 +10,13 @@ import (
 )
 
 type GroupChat struct {
-	*container.TabItem // TabItem with display and entry
+	*container.TabItem                 // TabItem with display and entry
+	Navigation         *fyne.Container // the left side of our window, so called navigation
 	GcStatusC          chan *GroupChatStatus
 	Refresh            chan bool
 }
 type ChatStorage struct {
 	*container.AppTabs // corresponding apptabs in which our chats tabitems are stored
-	*fyne.Container    // the left side of our window, so called navigation
 	*GroupChat
 	Private []*PrivateChat
 }
@@ -47,6 +47,7 @@ type PrivateChatStatus struct {
 type GameStatus struct {
 	MyTurn  bool
 	Running bool
+	Won     bool
 }
 
 type ErrorMessage struct {
