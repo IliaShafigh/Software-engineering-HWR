@@ -20,8 +20,10 @@ Dateien zu versenden einfach das Tutorial von vorne durchlaufen.
 1. In ./chat0815/fileTransfer/ navigieren
 2. ./Client/main.go bearbeiten und gewünschte IP in Zeile 24 hinzufügen
 3. ./Server/main.go starten
-4. ./Client/main.go starten
-Auf dem Bildschirm öffnen sich nun die Fenster um Datei bzw Ort Auszuwählen
+4. ./Client/main.go starten 
+
+Auf dem Bildschirm öffnen sich nun die Fenster um Datei bzw Ort Auszuwählen 
+
 5. Zuerst beim "Server" Datei Auswählen und öffnen
 6. Danach beim "Client" Zielort auswählen
 7. "Client" Fenster schließen
