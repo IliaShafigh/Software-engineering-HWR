@@ -45,9 +45,9 @@ func main() {
 func filePicker() (fileSize string, fileName string, data []byte) {
 	myApp := app.New()
 	//New title and window
-	myWindow := myApp.NewWindow("Open file for transfer")
+	myWindow := myApp.NewWindow("Server")
 	// resize window
-	myWindow.Resize(fyne.NewSize(400, 400))
+	myWindow.Resize(fyne.NewSize(600, 600))
 	button := widget.NewButton("Open file", func() {
 		file_Dialog := dialog.NewFileOpen(
 			func(file fyne.URIReadCloser, _ error) {

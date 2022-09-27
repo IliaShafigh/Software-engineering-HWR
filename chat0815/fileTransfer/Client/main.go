@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -41,7 +42,18 @@ func fileLocation() (filePath string) {
 		file_Dialog := dialog.NewFolderOpen(
 			func(file fyne.ListableURI, _ error) {
 				fileFolder := file.Name()
-				filePath = "/" + strings.TrimLeft(file.String(), "file://")
+				//filesystemformat je nach os
+				os := runtime.GOOS
+				switch os {
+				case "windows":
+					fmt.Println("Windows")
+					filePath = strings.TrimLeft(file.String(), "file://")
+				case "darwin":
+					fmt.Println("MAC OS")
+				case "linux":
+					fmt.Println("Linux")
+					filePath = "/" + strings.TrimLeft(file.String(), "file://")
+				}
 				fmt.Println("Ordner der Datei: ", fileFolder)
 				fmt.Println("Pfad der Datei: ", filePath)
 			}, myWindow)
