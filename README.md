@@ -2,10 +2,14 @@
 ## branch for file transfer feature
 
 ### Open:
+- Prepare for implementation
+  - [ ] All button functions "onTapped" should contain only one call to a function and nothing else
+  - [ ] Therefore There should be two functions: "Send File" and "Save File" or something like that.
+
+- GUI: Derzeit schließen die Fenster nicht automatisch und mann muss sie manuell schließen. Dies führ dazu dann man nicht mehrere dateien senden kann. Um mehrere
 - IP-Zuweisung -> Laurin
 - Anbindung an main -> Laurin
-- GUI: Derzeit schließen die Fenster nicht automatisch und mann muss sie manuell schließen. Dies führ dazu dann man nicht mehrere dateien senden kann. Um mehrere
-Dateien zu versenden einfach das Tutorial von vorne durchlaufen.
+  Dateien zu versenden einfach das Tutorial von vorne durchlaufen.
 
 - mac os funktionalität
 
