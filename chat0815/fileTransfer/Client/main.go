@@ -37,7 +37,7 @@ func fileLocation() (filePath string) {
 	//New title and window
 	myWindow := myApp.NewWindow("Client")
 	// resize window
-	myWindow.Resize(fyne.NewSize(400, 400))
+	myWindow.Resize(fyne.NewSize(600, 600))
 	button := widget.NewButton("Save File", func() {
 		file_Dialog := dialog.NewFolderOpen(
 			func(file fyne.ListableURI, _ error) {
@@ -57,6 +57,7 @@ func fileLocation() (filePath string) {
 				fmt.Println("Ordner der Datei: ", fileFolder)
 				fmt.Println("Pfad der Datei: ", filePath)
 			}, myWindow)
+		file_Dialog.Resize(fyne.NewSize(600, 600))
 		file_Dialog.Show()
 	})
 	myWindow.SetContent(container.NewVBox(
