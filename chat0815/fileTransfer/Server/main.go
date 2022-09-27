@@ -41,7 +41,7 @@ func main() {
 	}
 }
 
-//offnet Fenster um Datei Auszuwählen und sammelt infos über Date (size, name, data)
+//request file size and path from user via dialog
 func filePicker() (fileSize string, fileName string, data []byte) {
 	myApp := app.New()
 	//New title and window
@@ -51,6 +51,7 @@ func filePicker() (fileSize string, fileName string, data []byte) {
 	button := widget.NewButton("Open file", func() {
 		file_Dialog := dialog.NewFileOpen(
 			func(file fyne.URIReadCloser, _ error) {
+				//TODO WHY USE DEPRECATED FUNCTION?
 				fmt.Println("Datei \"", file.Name(), "\" wurde ausgewählt")
 				data, _ = ioutil.ReadAll(file)
 				fileName = fillString(file.Name(), 64)
@@ -65,6 +66,7 @@ func filePicker() (fileSize string, fileName string, data []byte) {
 	return fileSize, fileName, data
 }
 
+//TODO TRANSLATE
 //sendet dateiinfos an connection
 func fileSender(connection net.Conn, fileSize string, fileName string, data []byte) {
 	fmt.Println("Sending filename and filesize!")
@@ -82,6 +84,7 @@ func fileSender(connection net.Conn, fileSize string, fileName string, data []by
 // damit client nicht auf fehlende Bytes wwartet
 // falls name bzw. size nicht den gewünschten bytes entspricht
 // ":" ist ein illegales file name zeichen somit keine fehler
+//TODO TRANSLATE IN ENGLISH
 func fillString(retunString string, toLength int) string {
 	for {
 		lengtString := len(retunString)

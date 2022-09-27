@@ -31,7 +31,7 @@ func main() {
 	fileSaver(conn, path)
 }
 
-//ort für die datei auswählen und übergeben
+//requests and returns filepath from userinput
 func fileLocation() (filePath string) {
 	myApp := app.New()
 	//New title and window
@@ -43,6 +43,7 @@ func fileLocation() (filePath string) {
 			func(file fyne.ListableURI, _ error) {
 				fileFolder := file.Name()
 				//filesystemformat je nach os
+				//TODO EVALUATE THE PACKAGE "path/filepath" AND USE IT MAYBE
 				os := runtime.GOOS
 				switch os {
 				case "windows":
@@ -66,6 +67,7 @@ func fileLocation() (filePath string) {
 	return filePath
 }
 
+//TODO TRANSLATE
 //datei empfangen und an gewünschten ort erstellen
 func fileSaver(conn net.Conn, filePath string) {
 	fmt.Println("Verbindung hat geklappt, name und size werden empfangen")
@@ -81,6 +83,7 @@ func fileSaver(conn net.Conn, filePath string) {
 	//Strip the ':' once again but from the received file name now
 	fileName := strings.Trim(string(bufferFileName), ":")
 	//Create a new file to write in
+	//TODO DOES THAT WORK WITH WINDOWS? -> "path/filepath" solves that problem if it exists
 	newFile, err := os.Create(filePath + "/" + fileName)
 	if err != nil {
 		panic(err)
