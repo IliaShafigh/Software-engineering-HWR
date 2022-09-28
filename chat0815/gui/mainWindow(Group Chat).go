@@ -18,7 +18,7 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 
 	mainWin := a.NewWindow("chat 0815")
 	mainWin.Resize(fyne.NewSize(1200, 600))
-	mainWin.SetFixedSize(true)
+	mainWin.SetFixedSize(false)
 	mainWin.SetMaster()
 	chats := <-chatC
 	chatC <- chats
@@ -32,17 +32,19 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 	chats.AppTabs.OnChanged = func(tab *container.TabItem) {
 		if tab.Text == "Group Chat" {
 			//chats := <-chatC
-			//chats.Container = newGroupNavigation(chatC) //could save the navigation of group tab in chatstorage?
+			//chats.Navigation.Remove(chats.Navigation.Objects[0])
+			//chats.Navigation.Add(chats.GroupChat.Navigation)
 			//chatC <- chats
 		} else {
 			//chats := <-chatC
-			//chats.Container = chats.Private[tabsContainer.CurrentTabIndex()-1].Navigation
+			//chats.Navigation.Remove(chats.Navigation.Objects[0])
+			//chats.Navigation.Add(chats.Private[chats.AppTabs.CurrentTabIndex()-1].Navigation)
 			//chatC <- chats
 		}
 	}
+	chats.Navigation = fyne.NewContainerWithLayout(layout.NewMaxLayout(), chats.GroupChat.Navigation)
 	content := container.NewHSplit(chats.Navigation, chats.AppTabs)
 	chatC <- chats
-
 	content.SetOffset(0.1)
 	mainWin.SetContent(content)
 	startUpWin := BuildStartUp(chatC, errorC, a, mainWin)
@@ -71,9 +73,10 @@ func manageChatStorage(chatC chan contivity.ChatStorage) {
 		Refresh:    make(chan bool),
 	}
 	chats := contivity.ChatStorage{
-		AppTabs:   &container.AppTabs{},
-		GroupChat: &groupChat,
-		Private:   []*contivity.PrivateChat{},
+		AppTabs:    &container.AppTabs{},
+		Navigation: &fyne.Container{},
+		GroupChat:  &groupChat,
+		Private:    []*contivity.PrivateChat{},
 	}
 	for {
 		chatC <- chats
@@ -122,7 +125,7 @@ func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan contivity.Err
 	groupChatTab := container.NewTabItem("Group Chat", chatContainer)
 	refresh := make(chan bool)
 	go manageDisplayRefresh(refresh, chatDisplay)
-	// save the refresh chan and Tabitem in chat storage
+	// save the refresh chan and Tabitem in GroupChat
 	chats = <-chatC
 	chats.GroupChat.Refresh = refresh
 	chats.GroupChat.TabItem = groupChatTab
