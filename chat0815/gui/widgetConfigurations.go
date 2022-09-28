@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus) *widget.List {
+func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus, a fyne.Window) *widget.List {
 	list := widget.NewList(
 		func() int {
 			gcStatus := <-gcStatusC
@@ -24,7 +24,7 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 				if j == i {
 					obj.(*widget.Button).SetText(gcStatus.UserNames[userAddr])
 					obj.(*widget.Button).OnTapped = func() {
-						openPrivateTab(chatC, userAddr)
+						openPrivateTab(chatC, userAddr, a)
 					}
 					obj.(*widget.Button).Refresh()
 

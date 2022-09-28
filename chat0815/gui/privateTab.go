@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-func openPrivateTab(chatC chan contivity.ChatStorage, addr string) {
+func openPrivateTab(chatC chan contivity.ChatStorage, addr string, a fyne.Window) {
 	managePvChatStatusC(chatC, contivity.TcpAddr(net.ParseIP(strings.Split(addr, ":")[0])))
 	chats := <-chatC
 	chatC <- chats
 	indexOfCurrentPrivateTab := len(chats.Private) - 1 // after PvChatStatus Initialization
 	newPrivateChatTab(chatC, indexOfCurrentPrivateTab)
-	newPrivateChatNavigation(chatC, indexOfCurrentPrivateTab)
+	newPrivateChatNavigation(chatC, indexOfCurrentPrivateTab, a)
 	//TODO show tabitem usw	speichern in chats
 	chats = <-chatC
 	chats.AppTabs.Append(chats.Private[indexOfCurrentPrivateTab].TabItem)
@@ -97,7 +97,7 @@ func newPrivateChatDisplayConfiguration(pvStatusC chan *contivity.PrivateChatSta
 }
 
 // indexOfCurrentPrivateTab
-func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int) {
+func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a fyne.Window) {
 	//TODO TicTacGo implementation
 	ttgButton := widget.NewButton("TTG", func() {
 
@@ -108,12 +108,21 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int) {
 	})
 	//TODO File-Transfer implementation
 	ftButton := widget.NewButton("F-T", func() {
+		chats := <-chatC
+		pvStatus := <-chats.Private[indexOCPT].PvStatusC
+		ipRemote := pvStatus.UserAddr
 
+		testFunctionFileTransfer(ipRemote, a)
 	})
 	navigation := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), ftButton, ttgButton, svButton)
 	chats := <-chatC
 	chats.Private[indexOCPT].Navigation = navigation
 	chatC <- chats
+}
+
+//TODO TEST with that
+func testFunctionFileTransfer(remote net.Addr, a fyne.Window) {
+
 }
 
 type privateEntry struct {

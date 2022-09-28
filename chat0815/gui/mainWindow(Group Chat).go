@@ -25,7 +25,7 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 	mainWin.SetOnClosed(func() { contivity.GBXX(chats.GcStatusC) })
 
 	newGroupChatTab(chatC, errorC)
-	newGroupChatNavigation(chatC)
+	newGroupChatNavigation(chatC, mainWin)
 
 	chats = <-chatC
 	chats.AppTabs = container.NewAppTabs(chats.GroupChat.TabItem)
@@ -102,10 +102,10 @@ func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
 	}
 }
 
-func newGroupChatNavigation(chatC chan contivity.ChatStorage) {
+func newGroupChatNavigation(chatC chan contivity.ChatStorage, a fyne.Window) {
 	chats := <-chatC
 	chatC <- chats
-	list := groupChatNavigationConfiguration(chatC, chats.GcStatusC)
+	list := groupChatNavigationConfiguration(chatC, chats.GcStatusC, a)
 	navigation := fyne.NewContainerWithLayout(layout.NewMaxLayout(), list)
 	//Save navigation container in chat storage
 	chats = <-chatC
