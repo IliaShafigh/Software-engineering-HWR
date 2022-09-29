@@ -1,6 +1,7 @@
 # Software-Engineering-Chat0815-HWR
 ## branch for file transfer feature
 
+<<<<<<< HEAD
 ### Open:
 - Prepare for implementation
   - [ ] All button functions "onTapped" should contain only one call to a function and nothing else
@@ -35,3 +36,6 @@ Auf dem Bildschirm öffnen sich nun die Fenster um Datei bzw Ort Auszuwählen
 
 
 EOF
+=======
+Decentralized local chat service
+>>>>>>> main

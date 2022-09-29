@@ -8,7 +8,7 @@ import (
 )
 
 // UXXX Get Status Update request. Name is equal to request switch on tcpServer.go
-func UXXX(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, errorC chan ErrorMessage) error {
+func UXXX(addr net.Addr, cStatusC chan *GroupChatStatus, refresh chan bool, errorC chan ErrorMessage) error {
 	//Connection
 	log.Println("Client: Trying to connect to", addr.String())
 	conn, err := net.Dial("tcp", addr.String())
@@ -33,7 +33,7 @@ func UXXX(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, error
 
 	decoder := gob.NewDecoder(conn)
 	gob.Register(&net.TCPAddr{})
-	newCStatus := &ChatroomStatus{}
+	newCStatus := &GroupChatStatus{}
 	err = decoder.Decode(newCStatus)
 	if err != nil {
 		log.Println("Client: Problem with Decoding cause of", err)
@@ -58,7 +58,7 @@ func UXXX(addr net.Addr, cStatusC chan *ChatroomStatus, refresh chan bool, error
 // GUXX sends Get Update Request to all Participants of own cStatus.
 //Request that all receivers send UXXX request to oneself.
 //Name is equal to request switch on tcpServer.go
-func GUXX(cStatusC chan *ChatroomStatus) {
+func GUXX(cStatusC chan *GroupChatStatus) {
 	log.Println("Client: sending GUXX Request to everybody now...")
 	request := "GUXX"
 
@@ -80,7 +80,7 @@ func GUXX(cStatusC chan *ChatroomStatus) {
 // NGMX sends Message to all group members. send to all participants of the Group including oneself
 //Updates of ChatDisplay should be implemented in tcpServer
 //Name is equal to request switch on tcpServer.go
-func NGMX(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
+func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan ErrorMessage) {
 	log.Println("Client: Sending Message to Group")
 	//errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
 	request := "NGMX"
@@ -101,7 +101,7 @@ func NGMX(msg string, cStatusC chan *ChatroomStatus, errorC chan ErrorMessage) {
 
 // GBXX Say Goodbye to all participants in your cStatus
 //Name is equal to request switch on tcpServer.go
-func GBXX(cStatusC chan *ChatroomStatus) {
+func GBXX(cStatusC chan *GroupChatStatus) {
 	log.Println("Saying goodbye now!")
 	request := "GBXX"
 	tmp := <-cStatusC
@@ -130,12 +130,12 @@ func contains(addrs []net.Addr, addr2 net.Addr) bool {
 }
 
 func SendMessageToPrivate(msg string, addr net.Addr, errorC chan ErrorMessage) {
-	log.Println("Client: sending private message to", addr.String())
+	log.Println("Client: sending Private message to", addr.String())
 	request := "NPMX"
 	err := sendMsg(addr, msg, request)
 	if err != nil {
 		errorC <- ErrorMessage{Err: err, Msg: "Could not send message to" + addr.String() + " | " + msg}
-		log.Println("Client: failed to send private Message to", addr.String())
+		log.Println("Client: failed to send Private Message to", addr.String())
 	}
 
 }
