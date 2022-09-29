@@ -31,15 +31,15 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 	chats.AppTabs = container.NewAppTabs(chats.GroupChat.TabItem)
 	chats.AppTabs.OnChanged = func(tab *container.TabItem) {
 		if tab.Text == "Group Chat" {
-			//chats := <-chatC
-			//chats.Navigation.Remove(chats.Navigation.Objects[0])
-			//chats.Navigation.Add(chats.GroupChat.Navigation)
-			//chatC <- chats
+			chats := <-chatC
+			chats.Navigation.Remove(chats.Navigation.Objects[0])
+			chats.Navigation.Add(chats.GroupChat.Navigation)
+			chatC <- chats
 		} else {
-			//chats := <-chatC
-			//chats.Navigation.Remove(chats.Navigation.Objects[0])
-			//chats.Navigation.Add(chats.Private[chats.AppTabs.CurrentTabIndex()-1].Navigation)
-			//chatC <- chats
+			chats := <-chatC
+			chats.Navigation.Remove(chats.Navigation.Objects[0])
+			chats.Navigation.Add(chats.Private[chats.AppTabs.CurrentTabIndex()-1].Navigation)
+			chatC <- chats
 		}
 	}
 	chats.Navigation = fyne.NewContainerWithLayout(layout.NewMaxLayout(), chats.GroupChat.Navigation)
@@ -55,7 +55,7 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 //GetSortedKeyMap iterates over the given map and returns a sorted slice of its keys(IP adresses)
 func GetSortedKeyMap(names map[string]string) []string {
 	keys := []string{}
-	for k, _ := range names {
+	for k := range names {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

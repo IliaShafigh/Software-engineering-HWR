@@ -6,26 +6,57 @@ import (
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
+	"log"
 	"net"
 	"strings"
 )
 
-func openPrivateTab(chatC chan contivity.ChatStorage, addr string, a fyne.Window) {
+func openPrivateTab(chatC chan contivity.ChatStorage, addr string, name string, a fyne.Window) {
+	exists, _ := checkTabExists(chatC, addr)
+	if exists {
+		return
+	}
 	managePvChatStatusC(chatC, contivity.TcpAddr(net.ParseIP(strings.Split(addr, ":")[0])))
 	chats := <-chatC
 	chatC <- chats
 	indexOfCurrentPrivateTab := len(chats.Private) - 1 // after PvChatStatus Initialization
 	newPrivateChatTab(chatC, indexOfCurrentPrivateTab)
 	newPrivateChatNavigation(chatC, indexOfCurrentPrivateTab, a)
-	//TODO show tabitem usw	speichern in chats
+
 	chats = <-chatC
 	chats.AppTabs.Append(chats.Private[indexOfCurrentPrivateTab].TabItem)
-	chats.AppTabs.SelectTabIndex(indexOfCurrentPrivateTab + 1)
+	log.Println("But are we here?")
 	chats.Navigation.Remove(chats.GroupChat.Navigation)
 	chats.Navigation.Refresh()
 	chats.Navigation.Add(chats.Private[indexOfCurrentPrivateTab].Navigation)
 	chats.Navigation.Refresh()
 	chatC <- chats
+	chats.AppTabs.SelectTabIndex(indexOfCurrentPrivateTab + 1) //LEADS TO DEADLOCK, cause onchange function of apptabs is waiting for chats and this calls this onchanged fun
+}
+
+//Check if the tab exists and selects it and returns the index
+//Let name empty ("") if you dont have the name
+func checkTabExists(chatC chan contivity.ChatStorage, addr string) (bool, int) {
+	chats := <-chatC
+	gcStatus := <-chats.GroupChat.GcStatusC
+	name, exists := gcStatus.UserNames[addr]
+	if exists {
+		for i, tab := range chats.AppTabs.Items {
+			if tab.Text == name {
+				chats.GroupChat.GcStatusC <- gcStatus
+				chatC <- chats
+				chats.AppTabs.SelectTabIndex(i)
+				return true, i
+			}
+		}
+		chats.GroupChat.GcStatusC <- gcStatus
+		chatC <- chats
+		return false, -1
+	}
+	chats.GroupChat.GcStatusC <- gcStatus
+	chatC <- chats
+	log.Println("Error, should not happen, please analyse source code")
+	panic("Error, should not happen, please analyse source code. Asked to open a tab to a user which is not included in our GcStatus.Usernames list")
 }
 
 func managePvChatStatusC(chatC chan contivity.ChatStorage, remoteAddr net.Addr) {
@@ -111,6 +142,8 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 		chats := <-chatC
 		pvStatus := <-chats.Private[indexOCPT].PvStatusC
 		ipRemote := pvStatus.UserAddr
+		chats.Private[indexOCPT].PvStatusC <- pvStatus
+		chatC <- chats
 
 		testFunctionFileTransfer(ipRemote, a)
 	})
