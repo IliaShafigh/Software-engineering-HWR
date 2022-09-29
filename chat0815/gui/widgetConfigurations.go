@@ -22,9 +22,10 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 			users := GetSortedKeyMap(gcStatus.UserNames)
 			for j, userAddr := range users {
 				if j == i {
-					obj.(*widget.Button).SetText(gcStatus.UserNames[userAddr])
+					name := gcStatus.UserNames[userAddr]
+					obj.(*widget.Button).SetText(name)
 					obj.(*widget.Button).OnTapped = func() {
-						openPrivateTab(chatC, userAddr, a)
+						openPrivateTab(chatC, userAddr, name, a)
 					}
 					obj.(*widget.Button).Refresh()
 
