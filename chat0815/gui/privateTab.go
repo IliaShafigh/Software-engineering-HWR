@@ -35,7 +35,6 @@ func openPrivateTab(chatC chan contivity.ChatStorage, addr string, name string, 
 }
 
 //Check if the tab exists and selects it and returns the index
-//Let name empty ("") if you dont have the name
 func checkTabExists(chatC chan contivity.ChatStorage, addr string) (bool, int) {
 	chats := <-chatC
 	gcStatus := <-chats.GroupChat.GcStatusC
@@ -131,7 +130,7 @@ func newPrivateChatDisplayConfiguration(pvStatusC chan *contivity.PrivateChatSta
 func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a fyne.Window) {
 	//TODO TicTacGo implementation
 	ttgButton := widget.NewButton("TTG", func() {
-
+		drawAndShowTTG(chatC, indexOCPT)
 	})
 	//TODO Schiffeversenken implementation
 	svButton := widget.NewButton("SV", func() {
@@ -144,7 +143,6 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 		ipRemote := pvStatus.UserAddr
 		chats.Private[indexOCPT].PvStatusC <- pvStatus
 		chatC <- chats
-
 		testFunctionFileTransfer(ipRemote, a)
 	})
 	navigation := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), ftButton, ttgButton, svButton)
