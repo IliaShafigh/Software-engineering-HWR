@@ -83,8 +83,8 @@ func managePvChatStatusC(chatC chan contivity.ChatStorage, remoteAddr net.Addr) 
 func newPrivateChatTab(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats := <-chatC
 	chatC <- chats
-	chatDisplay := newPrivateChatDisplayConfiguration(chats.Private[indexOCPT].PvStatusC)
-	input := newPrivateInputEntry(chats.Private[indexOCPT].PvStatusC)
+	chatDisplay := newPrivateChatDisplayConfiguration(chats.Private[indexOCPT])
+	input := newPrivateInputEntry(chats.Private[indexOCPT])
 
 	gcStatus := <-chats.GcStatusC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
@@ -92,41 +92,52 @@ func newPrivateChatTab(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats.Private[indexOCPT].PvStatusC <- pvStatus
 	chats.GcStatusC <- gcStatus
 
-	lowerBox := container.New(layout.NewVBoxLayout(), input)
-	air := layout.NewSpacer()
-	chatContainer := container.New(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
+	chatContainer := chatCont(input, chatDisplay)
 	privateChatTab := container.NewTabItem(title, chatContainer)
-	refresh := make(chan bool)
-	go manageDisplayRefresh(refresh, chatDisplay)
-	//save the refresh chan and TabItem in PrivateChat
+
+	//save the  TabItem in PrivateChat
 	chats = <-chatC
-	chats.Private[indexOCPT].Refresh = refresh
 	chats.Private[indexOCPT].TabItem = privateChatTab
 	chatC <- chats
 }
 
-func newPrivateChatDisplayConfiguration(pvStatusC chan *contivity.PrivateChatStatus) *widget.List {
+func chatCont(input *privateEntry, chatDisplay *widget.List) *fyne.Container {
+	lowerBox := container.New(layout.NewVBoxLayout(), input)
+	air := layout.NewSpacer()
+	chatContainer := container.New(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
+	return chatContainer
+}
+
+func newPrivateChatDisplayConfiguration(pvChat *contivity.PrivateChat) *widget.List {
 	privateChatDisplay := widget.NewList(
 		func() int {
-			pvStatus := <-pvStatusC
-			pvStatusC <- pvStatus
+			pvStatus := <-pvChat.PvStatusC
+			pvChat.PvStatusC <- pvStatus
 			return len(pvStatus.ChatContent)
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Templat")
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
-			pvStatus := <-pvStatusC
+			pvStatus := <-pvChat.PvStatusC
 			contents := pvStatus.ChatContent
 			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
-			pvStatusC <- pvStatus
+			pvChat.PvStatusC <- pvStatus
 		},
 	)
+	refresh := make(chan bool)
+	go manageDisplayRefresh(refresh, privateChatDisplay)
+	pvChat.Refresh = refresh
 	return privateChatDisplay
 }
 
 // indexOfCurrentPrivateTab
 func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a fyne.Window) {
+	chatButton := widget.NewButton("CHAT", func() {
+		chats := <-chatC
+		chats.Private[indexOCPT].TabItem.Content = chatCont(newPrivateInputEntry(chats.Private[indexOCPT]), newPrivateChatDisplayConfiguration(chats.Private[indexOCPT]))
+		chatC <- chats
+	})
 	//TODO TicTacGo implementation
 	ttgButton := widget.NewButton("TTG", func() {
 		drawAndShowTTG(chatC, indexOCPT)
@@ -144,7 +155,7 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 		chatC <- chats
 		testFunctionFileTransfer(ipRemote, a)
 	})
-	navigation := container.New(layout.NewVBoxLayout(), ftButton, ttgButton, svButton)
+	navigation := container.New(layout.NewVBoxLayout(), chatButton, ftButton, ttgButton, svButton)
 	chats := <-chatC
 	chats.Private[indexOCPT].Navigation = navigation
 	chatC <- chats
@@ -164,10 +175,10 @@ func (e *privateEntry) onEnter() {
 	e.Entry.SetText("")
 }
 
-func newPrivateInputEntry(pvStatusC chan *contivity.PrivateChatStatus) *privateEntry {
+func newPrivateInputEntry(pvChat *contivity.PrivateChat) *privateEntry {
 	entry := &privateEntry{}
 	entry.ExtendBaseWidget(entry)
-	entry.pvStatusC = pvStatusC
+	entry.pvStatusC = pvChat.PvStatusC
 	return entry
 }
 
