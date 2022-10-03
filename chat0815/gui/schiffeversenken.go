@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
-	"log"
 	"math"
 	"time"
 )
@@ -19,8 +18,8 @@ func drawAndShowSV(chatC chan contivity.ChatStorage, indexOCPT int) {
 
 	circle1 := circle(80, 150, 150)
 	circle2 := &canvas.Circle{
-		Position1:   fyne.Position{320, 20},
-		Position2:   fyne.Position{440, 140},
+		Position1:   fyne.Position{X: 320, Y: 20},
+		Position2:   fyne.Position{X: 440, Y: 140},
 		Hidden:      false,
 		FillColor:   color.Black,
 		StrokeColor: nil,
@@ -48,7 +47,7 @@ func circle(radius, centerX, centerY float32) *canvas.Circle {
 		Hidden:      false,
 		FillColor:   color.Black,
 		StrokeColor: color.Black,
-		StrokeWidth: 1,
+		StrokeWidth: 0,
 	}
 }
 
@@ -59,7 +58,6 @@ func circleAnimation(obj *widget.Icon, objHost *fyne.Container, radius, centerX,
 
 		y = float32(radius*math.Sin(float64(f*2*math.Pi)) + centerY)
 		x = float32(radius*math.Cos(float64(f*2*math.Pi)) + centerX)
-		log.Println(f, x, y)
 
 		obj.Move(fyne.NewPos(x-(obj.Size().Width/2), y-(obj.Size().Height/2))) //Offset so obj center is taken into account
 		objHost.Refresh()

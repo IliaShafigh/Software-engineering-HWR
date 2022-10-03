@@ -25,7 +25,6 @@ func openPrivateTab(chatC chan contivity.ChatStorage, addr string, name string, 
 
 	chats = <-chatC
 	chats.AppTabs.Append(chats.Private[indexOfCurrentPrivateTab].TabItem)
-	log.Println("But are we here?")
 	chats.Navigation.Remove(chats.GroupChat.Navigation)
 	chats.Navigation.Refresh()
 	chats.Navigation.Add(chats.Private[indexOfCurrentPrivateTab].Navigation)
@@ -151,11 +150,6 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 	chatC <- chats
 }
 
-//TODO TEST with that
-func testFunctionFileTransfer(remote net.Addr, a fyne.Window) {
-
-}
-
 type privateEntry struct {
 	widget.Entry
 	pvStatusC chan *contivity.PrivateChatStatus
@@ -166,8 +160,7 @@ func (e *privateEntry) onEnter() {
 	if e.Entry.Text == "" {
 		return
 	}
-	//TODO NEW Funktion for private messages
-	//contivity.NPM(e.Entry.Text, e.pvStatusC)
+	contivity.NPMX(e.Entry.Text, e.pvStatusC, e.errorC)
 	e.Entry.SetText("")
 }
 

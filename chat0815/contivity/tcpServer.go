@@ -137,7 +137,27 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), gcStatusC)
 	case request == "NPMX":
-		//TODO NEW PRIVATE MESSAGE
+		log.Println("SERVER: new Private Message requets")
+		msg := strings.TrimPrefix(string(tmp), request+":")
+		log.Println("SERVER: Private msg received was:", msg)
+		chats = <-chatC
+		for indexOCPT, pvChat := range chats.Private {
+			pvStatus := <-pvChat.PvStatusC
+			pvChat.PvStatusC <- pvStatus
+			if AddrWithoutPort(conn.RemoteAddr()) == AddrWithoutPort(pvStatus.UserAddr) {
+				chatC <- chats
+				//Private Chat Tab is already open
+				AddPrivateMessage(msg, chatC, indexOCPT)
+				return
+			} else {
+				//TODO Got a new private Message so open new tab
+				chatC <- chats
+				return
+			}
+		}
+		chatC <- chats
+
+		//TODO Refresh Display of private Chat
 	case request == "NGR":
 	}
 
@@ -187,6 +207,18 @@ func AddGroupMessage(msg string, senderAddr net.Addr, gcStatusC chan *GroupChatS
 	msg = gcStatus.UserNames[AddrWithoutPort(senderAddr)] + ": " + msg
 	gcStatus.ChatContent = append(gcStatus.ChatContent, msg)
 	gcStatusC <- gcStatus
+}
+
+func AddPrivateMessage(msg string, chatC chan ChatStorage, indexOCPT int) {
+	chats := <-chatC
+	gcStatus := <-chats.GroupChat.GcStatusC
+	pvStatus := <-chats.Private[indexOCPT].PvStatusC
+	msg = gcStatus.UserNames[AddrWithoutPort(pvStatus.UserAddr)] + ": " + msg
+	pvStatus.ChatContent = append(pvStatus.ChatContent, msg)
+	chats.Private[indexOCPT].Refresh <- true
+	chats.Private[indexOCPT].PvStatusC <- pvStatus
+	chats.GroupChat.GcStatusC <- gcStatus
+	chatC <- chats
 }
 
 // TcpAddr Takes ip and adds port 8888 and returns net.TCPAddr

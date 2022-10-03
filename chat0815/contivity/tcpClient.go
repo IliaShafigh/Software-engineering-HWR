@@ -99,6 +99,19 @@ func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan ErrorMessage) 
 	return
 }
 
+func NPMX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan ErrorMessage) {
+	pvStatus := <-pvStatusC
+	pvStatusC <- pvStatus
+	log.Println("Client: sending Private message to", pvStatus.UserAddr.String())
+	request := "NPMX"
+	err := sendMsg(pvStatus.UserAddr, msg, request)
+	if err != nil {
+		errorC <- ErrorMessage{Err: err, Msg: "Could not send Private message to" + pvStatus.UserAddr.String() + " | " + msg}
+		log.Println("Client: failed to send Private Message to", pvStatus.UserAddr.String())
+	}
+
+}
+
 // GBXX Say Goodbye to all participants in your cStatus
 //Name is equal to request switch on tcpServer.go
 func GBXX(cStatusC chan *GroupChatStatus) {
@@ -116,6 +129,7 @@ func GBXX(cStatusC chan *GroupChatStatus) {
 		}
 	}
 }
+
 func contains(addrs []net.Addr, addr2 net.Addr) bool {
 	if addr2 == nil {
 		return false
@@ -127,17 +141,6 @@ func contains(addrs []net.Addr, addr2 net.Addr) bool {
 		}
 	}
 	return false
-}
-
-func SendMessageToPrivate(msg string, addr net.Addr, errorC chan ErrorMessage) {
-	log.Println("Client: sending Private message to", addr.String())
-	request := "NPMX"
-	err := sendMsg(addr, msg, request)
-	if err != nil {
-		errorC <- ErrorMessage{Err: err, Msg: "Could not send message to" + addr.String() + " | " + msg}
-		log.Println("Client: failed to send Private Message to", addr.String())
-	}
-
 }
 
 func sendMsg(addr net.Addr, msg string, request string) error {
