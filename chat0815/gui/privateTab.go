@@ -2,10 +2,10 @@ package gui
 
 import (
 	"chat0815/contivity"
-	"fyne.io/fyne"
-	"fyne.io/fyne/container"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	"log"
 	"net"
 	"strings"
@@ -31,7 +31,7 @@ func openPrivateTab(chatC chan contivity.ChatStorage, addr string, name string, 
 	chats.Navigation.Add(chats.Private[indexOfCurrentPrivateTab].Navigation)
 	chats.Navigation.Refresh()
 	chatC <- chats
-	chats.AppTabs.SelectTabIndex(indexOfCurrentPrivateTab + 1) //LEADS TO DEADLOCK, cause onchange function of apptabs is waiting for chats and this calls this onchanged fun
+	chats.AppTabs.SelectIndex(indexOfCurrentPrivateTab + 1)
 }
 
 //Check if the tab exists and selects it and returns the index
@@ -44,7 +44,7 @@ func checkTabExists(chatC chan contivity.ChatStorage, addr string) (bool, int) {
 			if tab.Text == name {
 				chats.GroupChat.GcStatusC <- gcStatus
 				chatC <- chats
-				chats.AppTabs.SelectTabIndex(i)
+				chats.AppTabs.SelectIndex(i)
 				return true, i
 			}
 		}
@@ -93,9 +93,9 @@ func newPrivateChatTab(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats.Private[indexOCPT].PvStatusC <- pvStatus
 	chats.GcStatusC <- gcStatus
 
-	lowerBox := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), input)
+	lowerBox := container.New(layout.NewVBoxLayout(), input)
 	air := layout.NewSpacer()
-	chatContainer := fyne.NewContainerWithLayout(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
+	chatContainer := container.New(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
 	privateChatTab := container.NewTabItem(title, chatContainer)
 	refresh := make(chan bool)
 	go manageDisplayRefresh(refresh, chatDisplay)
@@ -134,7 +134,7 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 	})
 	//TODO Schiffeversenken implementation
 	svButton := widget.NewButton("SV", func() {
-
+		drawAndShowSV(chatC, indexOCPT)
 	})
 	//TODO File-Transfer implementation
 	ftButton := widget.NewButton("F-T", func() {
@@ -145,7 +145,7 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 		chatC <- chats
 		testFunctionFileTransfer(ipRemote, a)
 	})
-	navigation := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), ftButton, ttgButton, svButton)
+	navigation := container.New(layout.NewVBoxLayout(), ftButton, ttgButton, svButton)
 	chats := <-chatC
 	chats.Private[indexOCPT].Navigation = navigation
 	chatC <- chats

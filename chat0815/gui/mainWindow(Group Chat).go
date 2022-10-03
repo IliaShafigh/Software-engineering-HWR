@@ -2,11 +2,11 @@ package gui
 
 import (
 	"chat0815/contivity"
-	"fyne.io/fyne"
-	"fyne.io/fyne/app"
-	"fyne.io/fyne/container"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	"sort"
 )
 
@@ -29,7 +29,7 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 
 	chats = <-chatC
 	chats.AppTabs = container.NewAppTabs(chats.GroupChat.TabItem)
-	chats.AppTabs.OnChanged = func(tab *container.TabItem) {
+	chats.AppTabs.OnSelected = func(tab *container.TabItem) {
 		if tab.Text == "Group Chat" {
 			chats := <-chatC
 			chats.Navigation.Remove(chats.Navigation.Objects[0])
@@ -38,11 +38,11 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 		} else {
 			chats := <-chatC
 			chats.Navigation.Remove(chats.Navigation.Objects[0])
-			chats.Navigation.Add(chats.Private[chats.AppTabs.CurrentTabIndex()-1].Navigation)
+			chats.Navigation.Add(chats.Private[chats.AppTabs.SelectedIndex()-1].Navigation)
 			chatC <- chats
 		}
 	}
-	chats.Navigation = fyne.NewContainerWithLayout(layout.NewMaxLayout(), chats.GroupChat.Navigation)
+	chats.Navigation = container.New(layout.NewMaxLayout(), chats.GroupChat.Navigation)
 	content := container.NewHSplit(chats.Navigation, chats.AppTabs)
 	chatC <- chats
 	content.SetOffset(0.1)
@@ -106,7 +106,7 @@ func newGroupChatNavigation(chatC chan contivity.ChatStorage, a fyne.Window) {
 	chats := <-chatC
 	chatC <- chats
 	list := groupChatNavigationConfiguration(chatC, chats.GcStatusC, a)
-	navigation := fyne.NewContainerWithLayout(layout.NewMaxLayout(), list)
+	navigation := container.New(layout.NewMaxLayout(), list)
 	//Save navigation container in chat storage
 	chats = <-chatC
 	chats.GroupChat.Navigation = navigation
@@ -119,9 +119,9 @@ func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan contivity.Err
 	chatDisplay := newGroupChatDisplayConfiguration(chats.GcStatusC)
 	input := newGroupInputEntry(chats.GcStatusC, errorC)
 
-	lowerBox := fyne.NewContainerWithLayout(layout.NewVBoxLayout(), input)
+	lowerBox := container.New(layout.NewVBoxLayout(), input)
 	air := layout.NewSpacer()
-	chatContainer := fyne.NewContainerWithLayout(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
+	chatContainer := container.New(layout.NewBorderLayout(air, lowerBox, air, air), lowerBox, chatDisplay)
 	groupChatTab := container.NewTabItem("Group Chat", chatContainer)
 	refresh := make(chan bool)
 	go manageDisplayRefresh(refresh, chatDisplay)

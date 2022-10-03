@@ -2,8 +2,8 @@ package gui
 
 import (
 	"chat0815/contivity"
-	"fyne.io/fyne"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
 	"log"
 )
 
