@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
+	"log"
 	"math"
 	"time"
 )
@@ -17,27 +18,24 @@ func drawAndShowSV(chatC chan contivity.ChatStorage, indexOCPT int) {
 	cont := container.NewWithoutLayout()
 
 	circle1 := circle(80, 150, 150)
-	circle2 := &canvas.Circle{
-		Position1:   fyne.Position{X: 320, Y: 20},
-		Position2:   fyne.Position{X: 440, Y: 140},
-		Hidden:      false,
-		FillColor:   color.Black,
-		StrokeColor: nil,
-		StrokeWidth: 0,
-	}
+	circle2 := circle(50, 400, 500)
 	ship := widget.NewIcon(theme.RadioButtonIcon())
 	ship.Resize(fyne.NewSize(30, 30))
 	cont.Add(circle1)
 	cont.Add(circle2)
 	cont.Add(ship)
-	shipMovement := circleAnimation(ship, cont, 90.0, 150.0, 150.0)
-	shipMovement.Start()
+	o := orbit(ship, circle1, cont)
+	o.Start()
 	cont.Refresh()
 	chats.Private[indexOCPT].TabItem.Content = cont
 	chats.AppTabs.Refresh()
 
 	chatC <- chats
 	SendTtgMove(chatC, indexOCPT)
+}
+
+func orbit(ship *widget.Icon, circle *canvas.Circle, cont *fyne.Container) *fyne.Animation {
+	return circleAnimation(ship, cont, float64(circle.Size().Width/2.0), float64((circle.Position2.X-circle.Position1.X)/2.0), float64((circle.Position2.Y-circle.Position1.Y)/2.0))
 }
 
 func circle(radius, centerX, centerY float32) *canvas.Circle {
@@ -52,6 +50,7 @@ func circle(radius, centerX, centerY float32) *canvas.Circle {
 }
 
 func circleAnimation(obj *widget.Icon, objHost *fyne.Container, radius, centerX, centerY float64) *fyne.Animation {
+	log.Println(radius)
 	circleA := fyne.NewAnimation(time.Second*5, func(f float32) {
 		var x float32
 		var y float32

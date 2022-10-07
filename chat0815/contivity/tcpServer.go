@@ -156,7 +156,6 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 			}
 		}
 		chatC <- chats
-
 		//TODO Refresh Display of private Chat
 	case request == "NGR":
 	}
@@ -259,8 +258,14 @@ func mergeCStatus(newStatus GroupChatStatus, senderAddr net.Addr, gcStatusC chan
 			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
 		}
 	}
-	//TODO MERGE  needs imrpovement. No usernames are merges
 	ownStatus.UserNames[AddrWithoutPort(senderAddr)] = newStatus.UserName
+	for nUserNameKey, nUserName := range newStatus.UserNames {
+		_, exists := ownStatus.UserNames[nUserNameKey]
+		if !exists {
+			//Add username and address
+			ownStatus.UserNames[nUserNameKey] = nUserName
+		}
+	}
 	gcStatusC <- ownStatus
 	return *ownStatus
 }
