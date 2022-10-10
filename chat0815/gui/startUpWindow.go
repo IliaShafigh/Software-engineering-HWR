@@ -3,9 +3,9 @@ package gui
 import (
 	"chat0815/contivity"
 	"fmt"
-	"fyne.io/fyne"
-	"fyne.io/fyne/container"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 	"log"
 	"net"
 )
@@ -13,6 +13,7 @@ import (
 func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
 	startUpWin := a.NewWindow("configure start up")
+	startUpWin.Resize(fyne.NewSize(500, 100))
 	startUpWin.SetFixedSize(true)
 	nameEntry := widget.NewEntry()
 	nameEntryConfig(nameEntry)
