@@ -2,12 +2,12 @@ package gui
 
 import (
 	"chat0815/contivity"
-	"fyne.io/fyne"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
 	"log"
 )
 
-func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus) *widget.List {
+func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus, a fyne.Window) *widget.List {
 	list := widget.NewList(
 		func() int {
 			gcStatus := <-gcStatusC
@@ -22,9 +22,10 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 			users := GetSortedKeyMap(gcStatus.UserNames)
 			for j, userAddr := range users {
 				if j == i {
-					obj.(*widget.Button).SetText(gcStatus.UserNames[userAddr])
+					name := gcStatus.UserNames[userAddr]
+					obj.(*widget.Button).SetText(name)
 					obj.(*widget.Button).OnTapped = func() {
-						openPrivateTab(chatC, userAddr)
+						openPrivateTab(chatC, userAddr, name, a)
 					}
 					obj.(*widget.Button).Refresh()
 

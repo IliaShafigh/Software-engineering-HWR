@@ -2,23 +2,24 @@ package contivity
 
 import (
 	"encoding/gob"
-	"fyne.io/fyne"
-	"fyne.io/fyne/container"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"log"
 	"net"
 	"strings"
 )
 
+type ChatStorage struct {
+	*container.AppTabs // corresponding apptabs in which our chats tabitems are stored
+	Navigation         *fyne.Container
+	*GroupChat
+	Private []*PrivateChat
+}
 type GroupChat struct {
 	*container.TabItem                 // TabItem with display and entry
 	Navigation         *fyne.Container // the left side of our window, so called navigation
 	GcStatusC          chan *GroupChatStatus
 	Refresh            chan bool
-}
-type ChatStorage struct {
-	*container.AppTabs // corresponding apptabs in which our chats tabitems are stored
-	*GroupChat
-	Private []*PrivateChat
 }
 type GroupChatStatus struct {
 	ChatContent []string
@@ -30,21 +31,26 @@ type GroupChatStatus struct {
 
 type PrivateChat struct {
 	*container.TabItem // TabItem with display and Entry
-	pvStatusC          chan *PrivateChatStatus
+	PvStatusC          chan *PrivateChatStatus
 	Refresh            chan bool       //Refreshes Display
 	Navigation         *fyne.Container //should include buttons for Hung, Hai und Ilia
 }
 
 type PrivateChatStatus struct {
 	ChatContent []string
-	UserAddr    net.Addr
-	Ttt         *GameStatus
-	Sv          *GameStatus
-	FriendName  string
-	UserName    string
+	UserAddr    net.Addr //Addr from remote partner of the private Chat
+	Ttg         *TTGGameStatus
+	Sv          *SVGameStatus
 }
 
-type GameStatus struct {
+type TTGGameStatus struct {
+	Running   bool
+	Won       bool
+	MyTurn    bool
+	GameField [9]int
+}
+
+type SVGameStatus struct {
 	MyTurn  bool
 	Running bool
 	Won     bool
@@ -62,8 +68,8 @@ func RunServer(l net.Listener, chatC chan ChatStorage, errorC chan ErrorMessage)
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			log.Println("SERVER: Error accepting incoming transmission from", conn.RemoteAddr().String())
-			errorC <- ErrorMessage{Err: err, Msg: "Failed connection attempt from" + conn.RemoteAddr().String()}
+			log.Println("SERVER: Error accepting incoming transmission ", err)
+			errorC <- ErrorMessage{Err: err, Msg: "Failed connection attempt "}
 		} else {
 			log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
 			go HandleRequest(conn, chatC, errorC)
@@ -131,7 +137,26 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), gcStatusC)
 	case request == "NPMX":
-		//TODO NEW PRIVATE MESSAGE
+		log.Println("SERVER: new Private Message requets")
+		msg := strings.TrimPrefix(string(tmp), request+":")
+		log.Println("SERVER: Private msg received was:", msg)
+		chats = <-chatC
+		for indexOCPT, pvChat := range chats.Private {
+			pvStatus := <-pvChat.PvStatusC
+			pvChat.PvStatusC <- pvStatus
+			if AddrWithoutPort(conn.RemoteAddr()) == AddrWithoutPort(pvStatus.UserAddr) {
+				chatC <- chats
+				//Private Chat Tab is already open
+				AddPrivateMessage(msg, chatC, indexOCPT)
+				return
+			} else {
+				//TODO Got a new private Message so open new tab
+				chatC <- chats
+				return
+			}
+		}
+		chatC <- chats
+		//TODO Refresh Display of private Chat
 	case request == "NGR":
 	}
 
@@ -183,6 +208,19 @@ func AddGroupMessage(msg string, senderAddr net.Addr, gcStatusC chan *GroupChatS
 	gcStatusC <- gcStatus
 }
 
+func AddPrivateMessage(msg string, chatC chan ChatStorage, indexOCPT int) {
+	chats := <-chatC
+	gcStatus := <-chats.GroupChat.GcStatusC
+	pvStatus := <-chats.Private[indexOCPT].PvStatusC
+	msg = gcStatus.UserNames[AddrWithoutPort(pvStatus.UserAddr)] + ": " + msg
+	pvStatus.ChatContent = append(pvStatus.ChatContent, msg)
+	chats.Private[indexOCPT].Refresh <- true
+	chats.Private[indexOCPT].PvStatusC <- pvStatus
+	chats.GroupChat.GcStatusC <- gcStatus
+	chatC <- chats
+}
+
+// TcpAddr Takes ip and adds port 8888 and returns net.TCPAddr
 func TcpAddr(ip net.IP) *net.TCPAddr {
 	return &net.TCPAddr{
 		IP:   ip,
@@ -220,8 +258,14 @@ func mergeCStatus(newStatus GroupChatStatus, senderAddr net.Addr, gcStatusC chan
 			ownStatus.BlockedAddr = append(ownStatus.BlockedAddr, nAddr)
 		}
 	}
-	//TODO MERGE  needs imrpovement. No usernames are merges
 	ownStatus.UserNames[AddrWithoutPort(senderAddr)] = newStatus.UserName
+	for nUserNameKey, nUserName := range newStatus.UserNames {
+		_, exists := ownStatus.UserNames[nUserNameKey]
+		if !exists {
+			//Add username and address
+			ownStatus.UserNames[nUserNameKey] = nUserName
+		}
+	}
 	gcStatusC <- ownStatus
 	return *ownStatus
 }
@@ -255,4 +299,28 @@ func InitializeGroupChatRoomStatus() *GroupChatStatus {
 	//Fill own information
 	gcStatus.UserAddr = append(gcStatus.UserAddr, TcpAddr(GetOutboundIP()))
 	return &gcStatus
+}
+
+// InitializePrivateChatRoomStatus Should only be called once for initialization
+func InitializePrivateChatRoomStatus(remoteAddr net.Addr) *PrivateChatStatus {
+	chatContent := make([]string, 0)
+
+	chatContent = append(chatContent, "This is private Chat")
+
+	pvStatus := PrivateChatStatus{
+		ChatContent: chatContent,
+		UserAddr:    remoteAddr,
+		Ttg: &TTGGameStatus{
+			Running:   false,
+			Won:       false,
+			MyTurn:    false,
+			GameField: [9]int{},
+		},
+		Sv: &SVGameStatus{
+			MyTurn:  false,
+			Running: false,
+			Won:     false,
+		},
+	}
+	return &pvStatus
 }
