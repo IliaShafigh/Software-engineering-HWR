@@ -53,10 +53,12 @@ func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessa
 }
 
 //GetSortedKeyMap iterates over the given map and returns a sorted slice of its keys(IP adresses)
-func GetSortedKeyMap(names map[string]string) []string {
+func GetSortedKeyMap(names map[string]string, exclude string) []string {
 	keys := []string{}
 	for k := range names {
-		keys = append(keys, k)
+		if k != exclude {
+			keys = append(keys, k)
+		}
 	}
 	sort.Strings(keys)
 	return keys

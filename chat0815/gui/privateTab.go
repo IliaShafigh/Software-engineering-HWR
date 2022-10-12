@@ -85,7 +85,7 @@ func newPrivateChatTab(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats := <-chatC
 	chatC <- chats
 	chatDisplay := newPrivateChatDisplayConfiguration(chats.Private[indexOCPT])
-	input := newPrivateInputEntry(chats.Private[indexOCPT])
+	input := newPrivateInputEntry(chatC, chats.Private[indexOCPT], indexOCPT)
 
 	gcStatus := <-chats.GcStatusC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
@@ -122,8 +122,21 @@ func newPrivateChatDisplayConfiguration(pvChat *contivity.PrivateChat) *widget.L
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			pvStatus := <-pvChat.PvStatusC
 			contents := pvStatus.ChatContent
-			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
+			msg := contents[len(contents)-1-i]
+			obj.(*widget.Label).SetText(msg)
+			//Color the label according to msg prefix
 			pvChat.PvStatusC <- pvStatus
+			if msg[:6] != pvChat.Text {
+				if i+1 == len(contents) {
+					// last entry is system message, so it has center allign
+					obj.(*widget.Label).Alignment = fyne.TextAlignCenter
+				} else {
+					obj.(*widget.Label).Alignment = fyne.TextAlignTrailing
+					obj.(*widget.Label).SetText(strings.Split(msg, ":")[1])
+				}
+			} else {
+				obj.(*widget.Label).Alignment = fyne.TextAlignLeading
+			}
 		},
 	)
 	refresh := make(chan bool)
@@ -136,7 +149,7 @@ func newPrivateChatDisplayConfiguration(pvChat *contivity.PrivateChat) *widget.L
 func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a fyne.Window) {
 	chatButton := widget.NewButton("CHAT", func() {
 		chats := <-chatC
-		chats.Private[indexOCPT].TabItem.Content = chatCont(newPrivateInputEntry(chats.Private[indexOCPT]), newPrivateChatDisplayConfiguration(chats.Private[indexOCPT]))
+		chats.Private[indexOCPT].TabItem.Content = chatCont(newPrivateInputEntry(chatC, chats.Private[indexOCPT], indexOCPT), newPrivateChatDisplayConfiguration(chats.Private[indexOCPT]))
 		chatC <- chats
 	})
 	//TODO TicTacGo implementation
@@ -164,7 +177,9 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 
 type privateEntry struct {
 	widget.Entry
-	pvStatusC chan *contivity.PrivateChatStatus
+	pvStatusC chan *contivity.PrivateChatStatus //TODO since we have chatC and indexOCPT
+	chatC     chan contivity.ChatStorage
+	indexOCPT int
 	errorC    chan contivity.ErrorMessage
 }
 
@@ -173,13 +188,21 @@ func (e *privateEntry) onEnter() {
 		return
 	}
 	contivity.NPMX(e.Entry.Text, e.pvStatusC, e.errorC)
+	chats := <-e.chatC
+	gcStatus := <-chats.GcStatusC
+	name := gcStatus.UserName
+	chats.GcStatusC <- gcStatus
+	e.chatC <- chats
+	contivity.AddPrivateMessage(e.Entry.Text, e.chatC, e.indexOCPT, name)
 	e.Entry.SetText("")
 }
 
-func newPrivateInputEntry(pvChat *contivity.PrivateChat) *privateEntry {
+func newPrivateInputEntry(chatC chan contivity.ChatStorage, pvChat *contivity.PrivateChat, indexOCPT int) *privateEntry {
 	entry := &privateEntry{}
 	entry.ExtendBaseWidget(entry)
 	entry.pvStatusC = pvChat.PvStatusC
+	entry.chatC = chatC
+	entry.indexOCPT = indexOCPT
 	return entry
 }
 
