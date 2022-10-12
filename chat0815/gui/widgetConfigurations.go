@@ -19,7 +19,7 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			gcStatus := <-gcStatusC
-			users := GetSortedKeyMap(gcStatus.UserNames, gcStatus.UserName)
+			users := GetSortedKeyMap(gcStatus.UserNames, contivity.AddrWithoutPort(contivity.TcpAddr(contivity.GetOutboundIP())))
 			for j, userAddr := range users {
 				if j == i {
 					name := gcStatus.UserNames[userAddr]
