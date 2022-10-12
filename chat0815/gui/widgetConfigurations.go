@@ -12,14 +12,14 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 		func() int {
 			gcStatus := <-gcStatusC
 			gcStatusC <- gcStatus
-			return len(gcStatus.UserNames)
+			return len(gcStatus.UserNames) - 1
 		},
 		func() fyne.CanvasObject {
 			return widget.NewButton("Template", func() {})
 		},
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			gcStatus := <-gcStatusC
-			users := GetSortedKeyMap(gcStatus.UserNames)
+			users := GetSortedKeyMap(gcStatus.UserNames, gcStatus.UserName)
 			for j, userAddr := range users {
 				if j == i {
 					name := gcStatus.UserNames[userAddr]
