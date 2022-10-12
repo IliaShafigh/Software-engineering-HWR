@@ -1,6 +1,7 @@
 package contivity
 
 import (
+	"chat0815/fileTransfer"
 	"encoding/gob"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -13,7 +14,8 @@ type ChatStorage struct {
 	*container.AppTabs // corresponding apptabs in which our chats tabitems are stored
 	Navigation         *fyne.Container
 	*GroupChat
-	Private []*PrivateChat
+	Private    []*PrivateChat
+	MainWindow fyne.Window
 }
 type GroupChat struct {
 	*container.TabItem                 // TabItem with display and entry
@@ -98,13 +100,13 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 	chatC <- chats
 
 	switch {
-	case request == "NGMX":
+	case request == "NGMX": // New Group Message
 		log.Println("SERVER: new Group Message requets")
 		msg := strings.TrimPrefix(string(tmp), request+":")
 		log.Println("SERVER: msg received was:", msg)
 		AddGroupMessage(msg, conn.RemoteAddr(), gcStatusC)
 		refresh <- true
-	case request == "UXXX":
+	case request == "UXXX": //Update Request
 		log.Println("SERVER: new Update request, encoding now... ")
 		name := strings.TrimPrefix(string(tmp), request+":")
 		//Add Addr
@@ -122,7 +124,7 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		}
 		gcStatusC <- gcStatus
 		log.Println("SERVER: Encoding is over!")
-	case request == "GUXX":
+	case request == "GUXX": //Get Update Request
 		log.Println("SERVER: new Get Update request, requesting now...")
 		addr := net.TCPAddr{
 			IP:   net.ParseIP(AddrWithoutPort(conn.RemoteAddr())),
@@ -133,10 +135,10 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		if err != nil {
 			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
 		}
-	case request == "GBXX":
+	case request == "GBXX": //Good Bye Request
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), gcStatusC)
-	case request == "NPMX":
+	case request == "NPMX": // New Private Message
 		log.Println("SERVER: new Private Message requets")
 		msg := strings.TrimPrefix(string(tmp), request+":")
 		log.Println("SERVER: Private msg received was:", msg)
@@ -156,8 +158,11 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 			}
 		}
 		chatC <- chats
-		//TODO Refresh Display of private Chat
-	case request == "NGR":
+		//TODO Refresh Display of private Chat?
+	case request == "NFTX": //New File Transfer Request
+		log.Println("SERVER: new File Transfer request")
+		//TODO Open Private Chat First or give some kind of notification or accept stuff
+		fileTransfer.SaveFile(conn, chats.MainWindow)
 	}
 
 }

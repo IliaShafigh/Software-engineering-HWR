@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/fileTransfer"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
@@ -153,7 +154,7 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 		ipRemote := pvStatus.UserAddr
 		chats.Private[indexOCPT].PvStatusC <- pvStatus
 		chatC <- chats
-		testFunctionFileTransfer(ipRemote, a)
+		fileTransfer.SendFile(ipRemote, a)
 	})
 	navigation := container.New(layout.NewVBoxLayout(), chatButton, ftButton, ttgButton, svButton)
 	chats := <-chatC

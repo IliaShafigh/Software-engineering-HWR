@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/dialog"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/dialog"
 )
 
-// function to implement into client to save file
-func saveFile(connection net.Conn, myWindow fyne.Window) {
+// SaveFile Receives a file from a connection with a save file dialog
+func SaveFile(connection net.Conn, myWindow fyne.Window) {
 	//variable to store the destination of the file
 	var filePath string
 	//file dialog to pick the destination of the file

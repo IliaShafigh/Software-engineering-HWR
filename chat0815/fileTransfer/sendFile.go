@@ -3,15 +3,16 @@ package fileTransfer
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strconv"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/dialog"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/dialog"
 )
 
 // function to implement into file transfer button
-func sendFile(connection net.Conn, myWindow fyne.Window) {
+func SendFile(addr net.Addr, myWindow fyne.Window) {
 	//file dialog to pick a file
 	fileDialog := dialog.NewFileOpen(
 		func(file fyne.URIReadCloser, _ error) {
@@ -23,18 +24,28 @@ func sendFile(connection net.Conn, myWindow fyne.Window) {
 			fileSize := fillString(strconv.FormatInt(int64(len(data)), 10), 10)
 			fmt.Println("File \"", file.URI().Name(), "\" selected")
 			//send file to client
-			sender(connection, fileSize, fileName, data)
+			sender(addr, fileSize, fileName, data)
 		}, myWindow)
 	fileDialog.Resize(fyne.NewSize(750, 500))
 	fileDialog.Show()
 }
 
 // function handling the sending of the file
-func sender(connection net.Conn, fileSize string, fileName string, data []byte) {
+func sender(addr net.Addr, fileSize string, fileName string, data []byte) {
+	connection, err := net.Dial("tcp", addr.String())
+	if err != nil {
+		log.Println("File-Transfer: conn err :", err, addr.String())
+		return
+	}
+	defer connection.Close()
+	request := "NFTX"
+	request = fillString(request, 70)
+	_, err = connection.Write([]byte(request))
+
 	//send size and name first to create placeholder for file
 	fmt.Println("Sending file name and size...")
 	//Write first 10 bytes to client telling them the filesize
-	_, err := connection.Write([]byte(fileSize))
+	_, err = connection.Write([]byte(fileSize))
 	if err != nil {
 		fmt.Println("Error while sending filesize: ", err)
 		panic(err)
@@ -59,15 +70,15 @@ func sender(connection net.Conn, fileSize string, fileName string, data []byte) 
 	}
 }
 
-// function to fill file name and size with ":" to 64 and 10 bytes
-func fillString(returnedString string, toLength int) string {
+// fillString fills str until it has length of toLength
+func fillString(str string, toLength int) string {
 	for {
-		lengthOfString := len(returnedString)
+		lengthOfString := len(str)
 		if lengthOfString < toLength {
-			returnedString = returnedString + ":"
+			str = str + ":"
 			continue
 		}
 		break
 	}
-	return returnedString
+	return str
 }

@@ -12,14 +12,14 @@ import (
 
 func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage) fyne.App {
 	a := app.New()
-
-	go manageChatStorage(chatC)
-	go manageLogWindow(errorC, a)
-
 	mainWin := a.NewWindow("chat 0815")
 	mainWin.Resize(fyne.NewSize(1200, 600))
 	mainWin.SetFixedSize(false)
 	mainWin.SetMaster()
+
+	go manageChatStorage(chatC, mainWin)
+	go manageLogWindow(errorC, a)
+
 	chats := <-chatC
 	chatC <- chats
 	mainWin.SetOnClosed(func() { contivity.GBXX(chats.GcStatusC) })
@@ -62,7 +62,7 @@ func GetSortedKeyMap(names map[string]string) []string {
 	return keys
 }
 
-func manageChatStorage(chatC chan contivity.ChatStorage) {
+func manageChatStorage(chatC chan contivity.ChatStorage, win fyne.Window) {
 	gcStatusC := make(chan *contivity.GroupChatStatus)
 	go manageGcStatusC(gcStatusC)
 
@@ -77,6 +77,7 @@ func manageChatStorage(chatC chan contivity.ChatStorage) {
 		Navigation: &fyne.Container{},
 		GroupChat:  &groupChat,
 		Private:    []*contivity.PrivateChat{},
+		MainWindow: win,
 	}
 	for {
 		chatC <- chats
