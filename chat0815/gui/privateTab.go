@@ -121,8 +121,21 @@ func newPrivateChatDisplayConfiguration(pvChat *contivity.PrivateChat) *widget.L
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			pvStatus := <-pvChat.PvStatusC
 			contents := pvStatus.ChatContent
-			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
+			msg := contents[len(contents)-1-i]
+			obj.(*widget.Label).SetText(msg)
+			//Color the label according to msg prefix
 			pvChat.PvStatusC <- pvStatus
+			if msg[:6] != pvChat.Text {
+				if i+1 == len(contents) {
+					// last entry is system message, so it has center allign
+					obj.(*widget.Label).Alignment = fyne.TextAlignCenter
+				} else {
+					obj.(*widget.Label).Alignment = fyne.TextAlignTrailing
+					obj.(*widget.Label).SetText(strings.Split(msg, ":")[1])
+				}
+			} else {
+				obj.(*widget.Label).Alignment = fyne.TextAlignLeading
+			}
 		},
 	)
 	refresh := make(chan bool)

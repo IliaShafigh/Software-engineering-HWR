@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"log"
+	"strings"
 )
 
 func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatusC chan *contivity.GroupChatStatus, a fyne.Window) *widget.List {
@@ -50,7 +51,19 @@ func newGroupChatDisplayConfiguration(gcStatusC chan *contivity.GroupChatStatus)
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			gcStatus := <-gcStatusC
 			contents := gcStatus.ChatContent
-			obj.(*widget.Label).SetText(contents[len(contents)-1-i])
+			msg := contents[len(contents)-1-i]
+			obj.(*widget.Label).SetText(msg)
+			if msg[0:6] == gcStatus.UserName {
+				log.Println(msg[0:6], gcStatus.UserName)
+				obj.(*widget.Label).Alignment = fyne.TextAlignTrailing
+				obj.(*widget.Label).SetText(strings.Split(msg, ":")[1])
+			} else if i == len(contents)-1 {
+				obj.(*widget.Label).Alignment = fyne.TextAlignCenter
+			} else if i == len(contents)-2 {
+				obj.(*widget.Label).Alignment = fyne.TextAlignCenter
+			} else {
+				obj.(*widget.Label).Alignment = fyne.TextAlignLeading
+			}
 			gcStatusC <- gcStatus
 		},
 	)
