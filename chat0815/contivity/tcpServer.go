@@ -145,9 +145,12 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 			pvStatus := <-pvChat.PvStatusC
 			pvChat.PvStatusC <- pvStatus
 			if AddrWithoutPort(conn.RemoteAddr()) == AddrWithoutPort(pvStatus.UserAddr) {
+				gcStatus := <-chats.GcStatusC
+				name := gcStatus.UserNames[AddrWithoutPort(pvStatus.UserAddr)]
+				chats.GcStatusC <- gcStatus
 				chatC <- chats
 				//Private Chat Tab is already open
-				AddPrivateMessage(msg, chatC, indexOCPT)
+				AddPrivateMessage(msg, chatC, indexOCPT, name)
 				return
 			} else {
 				//TODO Got a new private Message so open new tab
@@ -208,11 +211,11 @@ func AddGroupMessage(msg string, senderAddr net.Addr, gcStatusC chan *GroupChatS
 	gcStatusC <- gcStatus
 }
 
-func AddPrivateMessage(msg string, chatC chan ChatStorage, indexOCPT int) {
+func AddPrivateMessage(msg string, chatC chan ChatStorage, indexOCPT int, prefixName string) {
 	chats := <-chatC
 	gcStatus := <-chats.GroupChat.GcStatusC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
-	msg = gcStatus.UserNames[AddrWithoutPort(pvStatus.UserAddr)] + ": " + msg
+	msg = prefixName + ": " + msg
 	pvStatus.ChatContent = append(pvStatus.ChatContent, msg)
 	chats.Private[indexOCPT].Refresh <- true
 	chats.Private[indexOCPT].PvStatusC <- pvStatus

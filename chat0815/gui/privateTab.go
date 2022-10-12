@@ -174,7 +174,12 @@ func (e *privateEntry) onEnter() {
 		return
 	}
 	contivity.NPMX(e.Entry.Text, e.pvStatusC, e.errorC)
-	contivity.AddPrivateMessage(e.Entry.Text, e.chatC, e.indexOCPT)
+	chats := <-e.chatC
+	gcStatus := <-chats.GcStatusC
+	name := gcStatus.UserName
+	chats.GcStatusC <- gcStatus
+	e.chatC <- chats
+	contivity.AddPrivateMessage(e.Entry.Text, e.chatC, e.indexOCPT, name)
 	e.Entry.SetText("")
 }
 
