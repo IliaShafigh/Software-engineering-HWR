@@ -84,7 +84,7 @@ func newPrivateChatTab(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats := <-chatC
 	chatC <- chats
 	chatDisplay := newPrivateChatDisplayConfiguration(chats.Private[indexOCPT])
-	input := newPrivateInputEntry(chats.Private[indexOCPT])
+	input := newPrivateInputEntry(chatC, chats.Private[indexOCPT], indexOCPT)
 
 	gcStatus := <-chats.GcStatusC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
@@ -135,7 +135,7 @@ func newPrivateChatDisplayConfiguration(pvChat *contivity.PrivateChat) *widget.L
 func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a fyne.Window) {
 	chatButton := widget.NewButton("CHAT", func() {
 		chats := <-chatC
-		chats.Private[indexOCPT].TabItem.Content = chatCont(newPrivateInputEntry(chats.Private[indexOCPT]), newPrivateChatDisplayConfiguration(chats.Private[indexOCPT]))
+		chats.Private[indexOCPT].TabItem.Content = chatCont(newPrivateInputEntry(chatC, chats.Private[indexOCPT], indexOCPT), newPrivateChatDisplayConfiguration(chats.Private[indexOCPT]))
 		chatC <- chats
 	})
 	//TODO TicTacGo implementation
@@ -163,7 +163,9 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 
 type privateEntry struct {
 	widget.Entry
-	pvStatusC chan *contivity.PrivateChatStatus
+	pvStatusC chan *contivity.PrivateChatStatus //TODO since we have chatC and indexOCPT
+	chatC     chan contivity.ChatStorage
+	indexOCPT int
 	errorC    chan contivity.ErrorMessage
 }
 
@@ -172,13 +174,16 @@ func (e *privateEntry) onEnter() {
 		return
 	}
 	contivity.NPMX(e.Entry.Text, e.pvStatusC, e.errorC)
+	contivity.AddPrivateMessage(e.Entry.Text, e.chatC, e.indexOCPT)
 	e.Entry.SetText("")
 }
 
-func newPrivateInputEntry(pvChat *contivity.PrivateChat) *privateEntry {
+func newPrivateInputEntry(chatC chan contivity.ChatStorage, pvChat *contivity.PrivateChat, indexOCPT int) *privateEntry {
 	entry := &privateEntry{}
 	entry.ExtendBaseWidget(entry)
 	entry.pvStatusC = pvChat.PvStatusC
+	entry.chatC = chatC
+	entry.indexOCPT = indexOCPT
 	return entry
 }
 
