@@ -44,10 +44,12 @@ type PrivateChatStatus struct {
 }
 
 type TTGGameStatus struct {
-	Running     bool
-	Won         bool
-	MyTurn      bool
-	Row, Column int
+	Running    bool `json:"r"`
+	Won        bool `json:"w"`
+	MyTurn     bool `json:"mT"`
+	Row        int  `json:"row"`
+	Column     int  `json:"col"`
+	TurnNumber int  `json:"tN"`
 }
 
 type SVGameStatus struct {
@@ -136,6 +138,10 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 	case request == "GBXX":
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
 		RemoveUserAddr(conn.RemoteAddr(), gcStatusC)
+
+	case request == "GSUX":
+		log.Println("Server: new GameStatusUpdate")
+
 	case request == "NPMX":
 		log.Println("SERVER: new Private Message requets")
 		msg := strings.TrimPrefix(string(tmp), request+":")

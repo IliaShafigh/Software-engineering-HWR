@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/tictacgo"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
@@ -154,6 +155,7 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 	//TODO TicTacGo implementation
 	ttgButton := widget.NewButton("TTG", func() {
 		drawAndShowTTG(chatC, indexOCPT)
+		tictacgo.SaveConnectionData(chatC, indexOCPT)
 	})
 	//TODO Schiffeversenken implementation
 	svButton := widget.NewButton("SV", func() {

@@ -31,7 +31,6 @@ func drawAndShowSV(chatC chan contivity.ChatStorage, indexOCPT int) {
 	chats.AppTabs.Refresh()
 
 	chatC <- chats
-	SendTtgMove(chatC, indexOCPT)
 }
 
 func orbit(ship *widget.Icon, circle *canvas.Circle, cont *fyne.Container) *fyne.Animation {

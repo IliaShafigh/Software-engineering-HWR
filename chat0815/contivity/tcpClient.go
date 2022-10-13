@@ -99,6 +99,17 @@ func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan ErrorMessage) 
 	return
 }
 
+func GSUX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan ErrorMessage) {
+	pvStatus := <-pvStatusC
+	pvStatusC <- pvStatus
+	log.Println("Client: sending Private GameStatusUpdate to", pvStatus.UserAddr.String())
+	request := "GSUX"
+	err := sendMsg(pvStatus.UserAddr, msg, request)
+	if err != nil {
+		errorC <- ErrorMessage{Err: err, Msg: "Could not send Private GameStatusUpdate to" + pvStatus.UserAddr.String() + " | " + msg}
+		log.Println("Client: failed to send Private GameStatusUpdate to", pvStatus.UserAddr.String())
+	}
+}
 func NPMX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan ErrorMessage) {
 	pvStatus := <-pvStatusC
 	pvStatusC <- pvStatus
@@ -109,7 +120,6 @@ func NPMX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan ErrorMessag
 		errorC <- ErrorMessage{Err: err, Msg: "Could not send Private message to" + pvStatus.UserAddr.String() + " | " + msg}
 		log.Println("Client: failed to send Private Message to", pvStatus.UserAddr.String())
 	}
-
 }
 
 // GBXX Say Goodbye to all participants in your cStatus

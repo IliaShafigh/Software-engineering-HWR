@@ -2,11 +2,21 @@ package tictacgo
 
 import (
 	"chat0815/contivity"
+	"encoding/json"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"log"
 )
+
+type privateSaveLocation struct {
+	pvStatusC  chan *contivity.PrivateChatStatus
+	chatC      chan contivity.ChatStorage
+	gameStatus *contivity.TTGGameStatus
+	indexOCPT  int
+	errMessage chan contivity.ErrorMessage
+}
 
 type Board struct {
 	pieces     [3][3]uint8
@@ -20,6 +30,24 @@ type BoardIcon struct {
 	widget.Icon
 	board       *Board
 	row, column int
+}
+
+var boardIconContainer [3][3]*BoardIcon
+var connectionData privateSaveLocation
+
+func SaveConnectionData(chatC chan contivity.ChatStorage, indexOCPT int) {
+	connectionData.chatC = chatC
+	chats := <-chatC
+	status := <-chats.Private[indexOCPT].PvStatusC
+	connectionData.pvStatusC = chats.Private[indexOCPT].PvStatusC
+	connectionData.gameStatus = status.Ttg
+}
+
+func SaveBoardIcons(icon *BoardIcon) {
+	boardIconContainer[icon.row][icon.column] = icon
+}
+func ReturnBoardIcons(row int, column int) *BoardIcon {
+	return boardIconContainer[row][column]
 }
 
 func (b *Board) result() uint8 {
@@ -80,13 +108,6 @@ func (b *Board) Reset() {
 	b.turn = 0
 }
 
-func CheckIfYourTurn(chatC chan contivity.ChatStorage, indexOCPT int) {
-	chats := <-chatC
-	pvStatus := <-chats.Private[indexOCPT].PvStatusC
-	pvStatus.Ttg.Running = true
-	pvStatus.Ttg.MyTurn = false
-}
-
 //erbt von CanvasObject, wenn nicht vorhanden, dann passiert nix
 func (i *BoardIcon) Tapped(*fyne.PointEvent) {
 	if i.board.pieces[i.row][i.column] != 0 || i.board.finished {
@@ -105,17 +126,23 @@ func (i *BoardIcon) Tapped(*fyne.PointEvent) {
 
 	i.board.CheckIfWinningConditionIsMet(i.row, i.column)
 	i.board.turn++
+
+	UpdateConnectionData(i)
+
+	UpdateEnemyBoard()
+}
+
+func UpdateConnectionData(i *BoardIcon) {
+	connectionData.gameStatus.TurnNumber = int(i.board.turn)
+	connectionData.gameStatus.Row = i.row
+	connectionData.gameStatus.Column = i.column
+	connectionData.gameStatus.MyTurn = true
 }
 
 //updates Board, when enemy is tapping
-func (i *BoardIcon) EnemyTapped(chatC chan contivity.ChatStorage, indexOCPT int) {
+func EnemyTapped(status *contivity.TTGGameStatus) {
 
-	chats := <-chatC
-	pvStatus := <-chats.Private[indexOCPT].PvStatusC
-
-	i.board.finished = pvStatus.Ttg.Won
-	i.row = pvStatus.Ttg.Row
-	i.column = pvStatus.Ttg.Column
+	i := ReturnBoardIcons(status.Row, status.Column)
 
 	if i.board.pieces[i.row][i.column] != 0 || i.board.finished {
 		return
@@ -133,7 +160,6 @@ func (i *BoardIcon) EnemyTapped(chatC chan contivity.ChatStorage, indexOCPT int)
 
 	i.board.CheckIfWinningConditionIsMet(i.row, i.column)
 	i.board.turn++
-
 }
 
 func (i *BoardIcon) Reset() {
@@ -158,7 +184,36 @@ func (b *Board) DetermineWhoStartFirst(playerStartFirst bool) {
 	}
 }
 
-//Sending information to other player
-func UpdateBoard() {
+func UpdateEnemyBoard() {
 
+	packedBoardInformation := ConvertGameStatusReadyToSend(connectionData.gameStatus)
+
+	contivity.GSUX(string(packedBoardInformation), connectionData.pvStatusC, connectionData.errMessage)
+}
+
+func UpdateBoard(gameStatus string, ttgameStatus *contivity.TTGGameStatus) {
+
+	ttgameStatus = ConvertEnemyStatusToYours(gameStatus)
+
+	EnemyTapped(ttgameStatus)
+
+}
+
+//StructToJsonConversionTTGGameStatus
+func ConvertGameStatusReadyToSend(status *contivity.TTGGameStatus) []byte {
+	j, err := json.Marshal(status)
+	if err != nil {
+		log.Fatalf("Error occured during marshaling. Error: %s", err.Error())
+	}
+	return j
+}
+
+//JsonToStructConversionTTGGameStatus
+func ConvertEnemyStatusToYours(status string) *contivity.TTGGameStatus {
+	var enemyGameStatus *contivity.TTGGameStatus
+	err := json.Unmarshal([]byte(status), &enemyGameStatus)
+	if err != nil {
+		log.Fatalf("Error occured during unmarshaling. Error: %s", err.Error())
+	}
+	return enemyGameStatus
 }

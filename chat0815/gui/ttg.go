@@ -9,7 +9,7 @@ import (
 )
 
 func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
-
+	refresh := make(chan bool)
 	chats := <-chatC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
 
@@ -18,7 +18,9 @@ func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
 	cont := container.NewGridWithColumns(3)
 	for r := 0; r < 3; r++ {
 		for c := 0; c < 3; c++ {
-			cont.Add(NewBoardIcon(r, c, board))
+			var i = NewBoardIcon(r, c, board)
+			SaveBoardIcons(i)
+			cont.Add(i)
 		}
 	}
 
@@ -28,9 +30,18 @@ func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
 		},
 		fyne.CurrentApp().Driver().AllWindows()[0])
 
-	//cont.Refresh()
+	cont.Refresh()
+	go manageGameRefresh(refresh, cont)
+
 	chats.Private[indexOCPT].TabItem.Content = cont
-	//chats.AppTabs.Refresh()
+	chats.AppTabs.Refresh()
 	chats.Private[indexOCPT].PvStatusC <- pvStatus
 	chatC <- chats
+}
+
+func manageGameRefresh(refresh chan bool, display *fyne.Container) {
+	for {
+		<-refresh
+		display.Refresh()
+	}
 }
