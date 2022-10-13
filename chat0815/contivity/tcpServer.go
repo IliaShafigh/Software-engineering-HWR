@@ -154,12 +154,10 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 				//Private Chat Tab is already open
 				AddPrivateMessage(msg, chatC, indexOCPT, name)
 				return
-			} else {
-				//TODO Got a new private Message so open new tab
-				chatC <- chats
-				return
 			}
 		}
+		//TODO Got a new private Message so open new tab
+		//if its the second entry we will run here even though there is a tab existing. so export this
 		chatC <- chats
 		//TODO Refresh Display of private Chat?
 	case request == "NFTX": //New File Transfer Request
