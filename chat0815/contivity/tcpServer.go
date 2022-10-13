@@ -44,10 +44,10 @@ type PrivateChatStatus struct {
 }
 
 type TTGGameStatus struct {
-	Running   bool
-	Won       bool
-	MyTurn    bool
-	GameField [9]int
+	Running     bool
+	Won         bool
+	MyTurn      bool
+	Row, Column int
 }
 
 type SVGameStatus struct {
@@ -314,10 +314,11 @@ func InitializePrivateChatRoomStatus(remoteAddr net.Addr) *PrivateChatStatus {
 		ChatContent: chatContent,
 		UserAddr:    remoteAddr,
 		Ttg: &TTGGameStatus{
-			Running:   false,
-			Won:       false,
-			MyTurn:    false,
-			GameField: [9]int{},
+			Running: false,
+			Won:     false,
+			MyTurn:  false,
+			Row:     0,
+			Column:  0,
 		},
 		Sv: &SVGameStatus{
 			MyTurn:  false,
