@@ -13,11 +13,13 @@ func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
 	//Draw gameStatus
 	chats := <-chatC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
+
 	cont := container.New(layout.NewGridLayout(3))
 	for i, jj := range pvStatus.Ttg.GameField {
 		cont.Add(container.New(layout.NewMaxLayout()))
 		drawCell(jj, cont.Objects[i].(*fyne.Container))
 	}
+
 	if pvStatus.Ttg.Running {
 		if pvStatus.Ttg.MyTurn {
 			//tabItem := drawMyTurn(pvStatus.Ttg)
