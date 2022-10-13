@@ -21,18 +21,21 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 		func(i widget.ListItemID, obj fyne.CanvasObject) {
 			gcStatus := <-gcStatusC
 			users := GetSortedKeyMap(gcStatus.UserNames, contivity.AddrWithoutPort(contivity.TcpAddr(contivity.GetOutboundIP())))
+			addr := ""
+			name := ""
 			for j, userAddr := range users {
 				if j == i {
-					name := gcStatus.UserNames[userAddr]
-					obj.(*widget.Button).SetText(name)
-					obj.(*widget.Button).OnTapped = func() {
-						openPrivateTab(chatC, userAddr, name, a)
-					}
-					obj.(*widget.Button).Refresh()
-
+					name = gcStatus.UserNames[userAddr]
+					addr = userAddr
 				}
 			}
+			obj.(*widget.Button).SetText(name)
+			obj.(*widget.Button).OnTapped = func() {
+				openPrivateTab(chatC, addr, name, a)
+			}
+			obj.(*widget.Button).Refresh()
 			gcStatusC <- gcStatus
+
 		},
 	)
 	return list
@@ -54,7 +57,6 @@ func newGroupChatDisplayConfiguration(gcStatusC chan *contivity.GroupChatStatus)
 			msg := contents[len(contents)-1-i]
 			obj.(*widget.Label).SetText(msg)
 			if msg[0:6] == gcStatus.UserName {
-				log.Println(msg[0:6], gcStatus.UserName)
 				obj.(*widget.Label).Alignment = fyne.TextAlignTrailing
 				obj.(*widget.Label).SetText(strings.Split(msg, ":")[1])
 			} else if i == len(contents)-1 {
