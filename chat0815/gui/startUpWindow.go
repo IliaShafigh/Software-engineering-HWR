@@ -14,7 +14,6 @@ func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorM
 
 	startUpWin := a.NewWindow("configure start up")
 	startUpWin.Resize(fyne.NewSize(500, 100))
-	startUpWin.SetFixedSize(true)
 	nameEntry := widget.NewEntry()
 	nameEntryConfig(nameEntry)
 	ipEntry := widget.NewEntry()
