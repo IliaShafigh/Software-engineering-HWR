@@ -1,6 +1,7 @@
 package contivity
 
 import (
+	"chat0815/errPopUps"
 	"chat0815/fileTransfer"
 	"encoding/gob"
 	"fyne.io/fyne/v2"
@@ -58,12 +59,7 @@ type SVGameStatus struct {
 	Won     bool
 }
 
-type ErrorMessage struct {
-	Err error
-	Msg string
-}
-
-func RunServer(l net.Listener, chatC chan ChatStorage, errorC chan ErrorMessage) {
+func RunServer(l net.Listener, chatC chan ChatStorage, errorC chan errPopUps.ErrorMessage) {
 	log.Println("Listener initiating with server address", l.Addr().String())
 	log.Println("SERVER: listening")
 
@@ -71,7 +67,7 @@ func RunServer(l net.Listener, chatC chan ChatStorage, errorC chan ErrorMessage)
 		conn, err := l.Accept()
 		if err != nil {
 			log.Println("SERVER: Error accepting incoming transmission ", err)
-			errorC <- ErrorMessage{Err: err, Msg: "Failed connection attempt "}
+			errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Failed connection attempt "}
 		} else {
 			log.Println("SERVER: Incoming TCP Request from", conn.RemoteAddr().String())
 			go HandleRequest(conn, chatC, errorC)
@@ -82,7 +78,7 @@ func RunServer(l net.Listener, chatC chan ChatStorage, errorC chan ErrorMessage)
 //TODO if unknownIP(conn.Addr) && request != "UXXX {
 //			perform UXXX
 //		}
-func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessage) {
+func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan errPopUps.ErrorMessage) {
 	log.Println("SERVER: TCP Accepted from", conn.RemoteAddr().String(), ",reading request type now...")
 	//Expecting request type
 	tmp := make([]byte, 70)
@@ -120,7 +116,7 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		err = encoder.Encode(*gcStatus)
 		if err != nil {
 			log.Println("SERVER: Problem with encoding:", err)
-			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not encode and send gcStatus"}
+			errorC <- errPopUps.ErrorMessage{Err: err, Msg: "SERVER: Could not encode and send gcStatus"}
 		}
 		gcStatusC <- gcStatus
 		log.Println("SERVER: Encoding is over!")
@@ -133,7 +129,7 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 		}
 		err = UXXX(&addr, chatC, refresh, errorC)
 		if err != nil {
-			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
+			errorC <- errPopUps.ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
 		}
 	case request == "GBXX": //Good Bye Request
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
@@ -163,7 +159,7 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 	case request == "NFTX": //New File Transfer Request
 		log.Println("SERVER: new File Transfer request")
 		//TODO Open Private Chat First or give some kind of notification or accept stuff
-		fileTransfer.SaveFile(conn, chats.MainWindow)
+		fileTransfer.SaveFile(conn, chats.MainWindow, errorC)
 	}
 
 }

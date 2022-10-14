@@ -1,6 +1,7 @@
 package contivity
 
 import (
+	"chat0815/errPopUps"
 	"encoding/gob"
 	"log"
 	"net"
@@ -8,14 +9,14 @@ import (
 )
 
 // UXXX Get Status Update request. Name is equal to request switch on tcpServer.go
-func UXXX(addr net.Addr, chatC chan ChatStorage, refresh chan bool, errorC chan ErrorMessage) error {
+func UXXX(addr net.Addr, chatC chan ChatStorage, refresh chan bool, errorC chan errPopUps.ErrorMessage) error {
 	//Connection
 	log.Println("Client: Trying to connect to", addr.String())
 	conn, err := net.Dial("tcp", addr.String())
 	if err != nil {
 		log.Println("Client: could not establish connection to get Updates from", addr.String(), err)
 		refresh <- false
-		errorC <- ErrorMessage{Err: err, Msg: "Client: could not establish connection to get Updates from, " + addr.String()}
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Client: could not establish connection to get Updates from, " + addr.String()}
 		return err
 	}
 	defer conn.Close()
@@ -29,7 +30,7 @@ func UXXX(addr net.Addr, chatC chan ChatStorage, refresh chan bool, errorC chan 
 	_, err = conn.Write([]byte("UXXX:" + name))
 	if err != nil {
 		log.Println("Client: could not write request type cause of:", err)
-		errorC <- ErrorMessage{Err: err, Msg: "Client: could not write request type to, " + addr.String()}
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Client: could not write request type to, " + addr.String()}
 	}
 	log.Println("Client: did write request type, trying to decode now...")
 
@@ -39,7 +40,7 @@ func UXXX(addr net.Addr, chatC chan ChatStorage, refresh chan bool, errorC chan 
 	err = decoder.Decode(newCStatus)
 	if err != nil {
 		log.Println("Client: Problem with Decoding cause of", err)
-		errorC <- ErrorMessage{Err: err, Msg: "Client: could not decode cStatus from, " + addr.String()}
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Client: could not decode cStatus from, " + addr.String()}
 	}
 	log.Println("Client: Deconding seems to have worked")
 	log.Println("Client: this is the Status from Remote:")
@@ -88,7 +89,7 @@ func GUXX(cStatusC chan *GroupChatStatus) {
 // NGMX sends Message to all group members. send to all participants of the Group including oneself
 //Updates of ChatDisplay should be implemented in tcpServer
 //Name is equal to request switch on tcpServer.go
-func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan ErrorMessage) {
+func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan errPopUps.ErrorMessage) {
 	log.Println("Client: Sending Message to Group")
 	//errorC <- ErrorMessage{Err: nil, Msg: "Client msg: " + msg + " "}
 	request := "NGMX"
@@ -107,14 +108,14 @@ func NGMX(msg string, cStatusC chan *GroupChatStatus, errorC chan ErrorMessage) 
 	return
 }
 
-func NPMX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan ErrorMessage) {
+func NPMX(msg string, pvStatusC chan *PrivateChatStatus, errorC chan errPopUps.ErrorMessage) {
 	pvStatus := <-pvStatusC
 	pvStatusC <- pvStatus
 	log.Println("Client: sending Private message to", pvStatus.UserAddr.String())
 	request := "NPMX"
 	err := sendMsg(pvStatus.UserAddr, msg, request)
 	if err != nil {
-		errorC <- ErrorMessage{Err: err, Msg: "Could not send Private message to" + pvStatus.UserAddr.String() + " | " + msg}
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Could not send Private message to" + pvStatus.UserAddr.String() + " | " + msg}
 		log.Println("Client: failed to send Private Message to", pvStatus.UserAddr.String())
 	}
 

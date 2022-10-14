@@ -2,6 +2,7 @@ package main
 
 import (
 	"chat0815/contivity"
+	"chat0815/errPopUps"
 	"chat0815/gui"
 	"log"
 	"net"
@@ -10,7 +11,7 @@ import (
 
 func main() {
 	chatC := make(chan contivity.ChatStorage)
-	errorC := make(chan contivity.ErrorMessage)
+	errorC := make(chan errPopUps.ErrorMessage)
 	//CStatus Management
 
 	//__________________________________________________________________

@@ -1,6 +1,7 @@
 package fileTransfer
 
 import (
+	"chat0815/errPopUps"
 	"fmt"
 	"io"
 	"net"
@@ -14,7 +15,7 @@ import (
 )
 
 // SaveFile Receives a file from a connection with a save file dialog
-func SaveFile(connection net.Conn, myWindow fyne.Window) {
+func SaveFile(connection net.Conn, myWindow fyne.Window, errorC chan errPopUps.ErrorMessage) {
 	//variable to store the destination of the file
 	var filePath string
 	//file dialog to pick the destination of the file
@@ -29,9 +30,10 @@ func SaveFile(connection net.Conn, myWindow fyne.Window) {
 				filePath = "/" + strings.TrimLeft(file.String(), "file://")
 				//TODO: add MAC OS support
 			}
-			if _, err := os.Stat(filePath); os.IsPermission(err) {
+			if _, err := os.Stat(filePath); !os.IsPermission(err) {
 				fmt.Println("Path is unaccessible: ", err)
-				SaveFile(connection, myWindow)
+				errorC <- errPopUps.ErrorMessage{Err: err, Msg: "You dont have permissions to save a new  file here"}
+				SaveFile(connection, myWindow, errorC)
 			} else {
 				//function to save the file
 				fmt.Println("Selected path:", filePath)

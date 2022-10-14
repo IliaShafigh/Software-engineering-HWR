@@ -1,14 +1,13 @@
-package gui
+package errPopUps
 
 import (
-	"chat0815/contivity"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"image/color"
 )
 
-func showLog(logs contivity.ErrorMessage, a fyne.App) {
+func ShowLog(logs ErrorMessage, a fyne.App) {
 	line1 := canvas.NewText(logs.Msg, &color.RGBA{0xff, 0xff, 0xff, 0xff})
 	line1.TextSize = 12
 	line1.Alignment = fyne.TextAlignCenter
@@ -22,4 +21,9 @@ func showLog(logs contivity.ErrorMessage, a fyne.App) {
 	logWin := a.NewWindow("Log Output")
 	logWin.SetContent(content)
 	logWin.Show()
+}
+
+type ErrorMessage struct {
+	Err error
+	Msg string
 }

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/errPopUps"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -10,7 +11,7 @@ import (
 	"net"
 )
 
-func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
+func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan errPopUps.ErrorMessage, a fyne.App, mainWin fyne.Window) fyne.Window {
 
 	startUpWin := a.NewWindow("configure start up")
 	startUpWin.Resize(fyne.NewSize(500, 100))
@@ -28,7 +29,7 @@ func BuildStartUp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorM
 }
 
 //TODO MAKE CLEANER
-func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage, name, ip string, mainWin, startUpWin fyne.Window) {
+func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan errPopUps.ErrorMessage, name, ip string, mainWin, startUpWin fyne.Window) {
 	ownAddr := contivity.TcpAddr(contivity.GetOutboundIP())
 	//save name in cStatus
 	chats := <-chatC
@@ -40,7 +41,7 @@ func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.E
 		chats.GcStatusC <- gcStatus
 	} else {
 		chats.GcStatusC <- gcStatus
-		errorC <- contivity.ErrorMessage{Err: nil, Msg: "Please input your nickname"}
+		errorC <- errPopUps.ErrorMessage{Err: nil, Msg: "Please input your nickname"}
 		return
 	}
 	connIp := net.ParseIP(ip)
@@ -57,7 +58,7 @@ func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.E
 		go func() {
 			err := contivity.UXXX(connAddr, chatC, check, errorC)
 			if err != nil {
-				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
+				errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
 			}
 		}()
 		if <-check {

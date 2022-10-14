@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/errPopUps"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"log"
@@ -73,7 +74,7 @@ func newGroupChatDisplayConfiguration(gcStatusC chan *contivity.GroupChatStatus)
 	return mainChatDisplay
 }
 
-func newGroupInputEntry(gcStatusC chan *contivity.GroupChatStatus, errorC chan contivity.ErrorMessage) *groupInputEntry {
+func newGroupInputEntry(gcStatusC chan *contivity.GroupChatStatus, errorC chan errPopUps.ErrorMessage) *groupInputEntry {
 	entry := &groupInputEntry{}
 	entry.ExtendBaseWidget(entry)
 	entry.gcStatusC = gcStatusC
@@ -101,7 +102,7 @@ func newGroupInputEntry(gcStatusC chan *contivity.GroupChatStatus, errorC chan c
 type groupInputEntry struct {
 	widget.Entry
 	gcStatusC chan *contivity.GroupChatStatus
-	errorC    chan contivity.ErrorMessage
+	errorC    chan errPopUps.ErrorMessage
 }
 
 func (e *groupInputEntry) onEnter() {

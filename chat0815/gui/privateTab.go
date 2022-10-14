@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/errPopUps"
 	"chat0815/fileTransfer"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -180,7 +181,7 @@ type privateEntry struct {
 	pvStatusC chan *contivity.PrivateChatStatus //TODO since we have chatC and indexOCPT
 	chatC     chan contivity.ChatStorage
 	indexOCPT int
-	errorC    chan contivity.ErrorMessage
+	errorC    chan errPopUps.ErrorMessage
 }
 
 func (e *privateEntry) onEnter() {

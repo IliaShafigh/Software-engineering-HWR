@@ -2,6 +2,7 @@ package gui
 
 import (
 	"chat0815/contivity"
+	"chat0815/errPopUps"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -10,7 +11,7 @@ import (
 	"sort"
 )
 
-func BuildApp(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage) fyne.App {
+func BuildApp(chatC chan contivity.ChatStorage, errorC chan errPopUps.ErrorMessage) fyne.App {
 	a := app.New()
 	mainWin := a.NewWindow("chat 0815")
 	mainWin.Resize(fyne.NewSize(1200, 600))
@@ -97,11 +98,11 @@ func manageGcStatusC(gcStatusC chan *contivity.GroupChatStatus) {
 	}
 }
 
-func manageLogWindow(errorC chan contivity.ErrorMessage, a fyne.App) {
-	var logs contivity.ErrorMessage
+func manageLogWindow(errorC chan errPopUps.ErrorMessage, a fyne.App) {
+	var logs errPopUps.ErrorMessage
 	for {
 		logs = <-errorC
-		go showLog(logs, a)
+		go errPopUps.ShowLog(logs, a)
 	}
 }
 
@@ -116,7 +117,7 @@ func newGroupChatNavigation(chatC chan contivity.ChatStorage, a fyne.Window) {
 	chatC <- chats
 }
 
-func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan contivity.ErrorMessage) {
+func newGroupChatTab(chatC chan contivity.ChatStorage, errorC chan errPopUps.ErrorMessage) {
 	chats := <-chatC
 	chatC <- chats
 	chatDisplay := newGroupChatDisplayConfiguration(chats.GcStatusC)
