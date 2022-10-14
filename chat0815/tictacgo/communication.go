@@ -1,8 +1,8 @@
 package tictacgo
 
-func SendMove(status *TTGGameStatus) string {
+func SendMove() string {
 
-	return string(ConvertGameStatusReadyToSend(status))
+	return string(ConvertGameStatusReadyToSend(gameStatus))
 }
 
 //receives inGame data as string

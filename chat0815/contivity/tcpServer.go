@@ -40,7 +40,7 @@ type PrivateChat struct {
 type PrivateChatStatus struct {
 	ChatContent []string
 	UserAddr    net.Addr //Addr from remote partner of the private Chat
-	Ttg         *tictacgo.TTGGameStatus
+	Ttg         *tictacgo.TicTacGoStatus
 	Sv          *SVGameStatus
 }
 
@@ -311,7 +311,7 @@ func InitializePrivateChatRoomStatus(remoteAddr net.Addr) *PrivateChatStatus {
 	pvStatus := PrivateChatStatus{
 		ChatContent: chatContent,
 		UserAddr:    remoteAddr,
-		Ttg: &tictacgo.TTGGameStatus{
+		Ttg: &tictacgo.TicTacGoStatus{
 			Won:    false,
 			MyTurn: false,
 			Row:    0,
