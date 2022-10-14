@@ -1,6 +1,7 @@
 package contivity
 
 import (
+	"chat0815/tictacgo"
 	"encoding/gob"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -39,17 +40,8 @@ type PrivateChat struct {
 type PrivateChatStatus struct {
 	ChatContent []string
 	UserAddr    net.Addr //Addr from remote partner of the private Chat
-	Ttg         *TTGGameStatus
+	Ttg         *tictacgo.TTGGameStatus
 	Sv          *SVGameStatus
-}
-
-type TTGGameStatus struct {
-	Running    bool `json:"r"`
-	Won        bool `json:"w"`
-	MyTurn     bool `json:"mT"`
-	Row        int  `json:"row"`
-	Column     int  `json:"col"`
-	TurnNumber int  `json:"tN"`
 }
 
 type SVGameStatus struct {
@@ -319,12 +311,11 @@ func InitializePrivateChatRoomStatus(remoteAddr net.Addr) *PrivateChatStatus {
 	pvStatus := PrivateChatStatus{
 		ChatContent: chatContent,
 		UserAddr:    remoteAddr,
-		Ttg: &TTGGameStatus{
-			Running: false,
-			Won:     false,
-			MyTurn:  false,
-			Row:     0,
-			Column:  0,
+		Ttg: &tictacgo.TTGGameStatus{
+			Won:    false,
+			MyTurn: false,
+			Row:    0,
+			Column: 0,
 		},
 		Sv: &SVGameStatus{
 			MyTurn:  false,

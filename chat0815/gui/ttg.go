@@ -9,7 +9,6 @@ import (
 )
 
 func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
-	refresh := make(chan bool)
 	chats := <-chatC
 	pvStatus := <-chats.Private[indexOCPT].PvStatusC
 
@@ -30,18 +29,8 @@ func drawAndShowTTG(chatC chan contivity.ChatStorage, indexOCPT int) {
 		},
 		fyne.CurrentApp().Driver().AllWindows()[0])
 
-	cont.Refresh()
-	go manageGameRefresh(refresh, cont)
-
 	chats.Private[indexOCPT].TabItem.Content = cont
 	chats.AppTabs.Refresh()
 	chats.Private[indexOCPT].PvStatusC <- pvStatus
 	chatC <- chats
-}
-
-func manageGameRefresh(refresh chan bool, display *fyne.Container) {
-	for {
-		<-refresh
-		display.Refresh()
-	}
 }

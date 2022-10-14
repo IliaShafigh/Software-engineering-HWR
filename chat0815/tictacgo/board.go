@@ -1,7 +1,6 @@
 package tictacgo
 
 import (
-	"chat0815/contivity"
 	"encoding/json"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -10,12 +9,12 @@ import (
 	"log"
 )
 
-type privateSaveLocation struct {
-	pvStatusC  chan *contivity.PrivateChatStatus
-	chatC      chan contivity.ChatStorage
-	gameStatus *contivity.TTGGameStatus
-	indexOCPT  int
-	errMessage chan contivity.ErrorMessage
+type TTGGameStatus struct {
+	Won        bool `json:"w"`
+	MyTurn     bool `json:"mT"`
+	Row        int  `json:"row"`
+	Column     int  `json:"col"`
+	TurnNumber int  `json:"tN"`
 }
 
 type Board struct {
@@ -33,15 +32,6 @@ type BoardIcon struct {
 }
 
 var boardIconContainer [3][3]*BoardIcon
-var connectionData privateSaveLocation
-
-func SaveConnectionData(chatC chan contivity.ChatStorage, indexOCPT int) {
-	connectionData.chatC = chatC
-	chats := <-chatC
-	status := <-chats.Private[indexOCPT].PvStatusC
-	connectionData.pvStatusC = chats.Private[indexOCPT].PvStatusC
-	connectionData.gameStatus = status.Ttg
-}
 
 func SaveBoardIcons(icon *BoardIcon) {
 	boardIconContainer[icon.row][icon.column] = icon
@@ -127,20 +117,22 @@ func (i *BoardIcon) Tapped(*fyne.PointEvent) {
 	i.board.CheckIfWinningConditionIsMet(i.row, i.column)
 	i.board.turn++
 
-	UpdateConnectionData(i)
+	t := UpdateConnectionData(i)
 
-	UpdateEnemyBoard()
+	//need a trigger to activate SendMove
 }
 
-func UpdateConnectionData(i *BoardIcon) {
-	connectionData.gameStatus.TurnNumber = int(i.board.turn)
-	connectionData.gameStatus.Row = i.row
-	connectionData.gameStatus.Column = i.column
-	connectionData.gameStatus.MyTurn = true
+func UpdateConnectionData(i *BoardIcon) *TTGGameStatus {
+	t := new(TTGGameStatus)
+	t.TurnNumber = int(i.board.turn)
+	t.Row = i.row
+	t.Column = i.column
+	t.MyTurn = true
+	return t
 }
 
 //updates Board, when enemy is tapping
-func EnemyTapped(status *contivity.TTGGameStatus) {
+func EnemyTapped(status *TTGGameStatus) {
 
 	i := ReturnBoardIcons(status.Row, status.Column)
 
@@ -184,23 +176,8 @@ func (b *Board) DetermineWhoStartFirst(playerStartFirst bool) {
 	}
 }
 
-func UpdateEnemyBoard() {
-
-	packedBoardInformation := ConvertGameStatusReadyToSend(connectionData.gameStatus)
-
-	contivity.GSUX(string(packedBoardInformation), connectionData.pvStatusC, connectionData.errMessage)
-}
-
-func UpdateBoard(gameStatus string, ttgameStatus *contivity.TTGGameStatus) {
-
-	ttgameStatus = ConvertEnemyStatusToYours(gameStatus)
-
-	EnemyTapped(ttgameStatus)
-
-}
-
 //StructToJsonConversionTTGGameStatus
-func ConvertGameStatusReadyToSend(status *contivity.TTGGameStatus) []byte {
+func ConvertGameStatusReadyToSend(status *TTGGameStatus) []byte {
 	j, err := json.Marshal(status)
 	if err != nil {
 		log.Fatalf("Error occured during marshaling. Error: %s", err.Error())
@@ -209,8 +186,8 @@ func ConvertGameStatusReadyToSend(status *contivity.TTGGameStatus) []byte {
 }
 
 //JsonToStructConversionTTGGameStatus
-func ConvertEnemyStatusToYours(status string) *contivity.TTGGameStatus {
-	var enemyGameStatus *contivity.TTGGameStatus
+func ConvertEnemyStatusToYours(status string) *TTGGameStatus {
+	var enemyGameStatus *TTGGameStatus
 	err := json.Unmarshal([]byte(status), &enemyGameStatus)
 	if err != nil {
 		log.Fatalf("Error occured during unmarshaling. Error: %s", err.Error())
