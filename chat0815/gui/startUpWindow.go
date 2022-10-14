@@ -53,6 +53,7 @@ func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.E
 	} else {
 		check := make(chan bool)
 		connAddr := contivity.TcpAddr(connIp)
+		chatC <- chats
 		go func() {
 			err := contivity.UXXX(connAddr, chatC, check, errorC)
 			if err != nil {
@@ -63,6 +64,7 @@ func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.E
 			startUpWin.Hide()
 			mainWin.Show()
 		}
+		return
 	}
 	chatC <- chats
 }
