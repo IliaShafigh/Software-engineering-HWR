@@ -29,9 +29,14 @@ func SaveFile(connection net.Conn, myWindow fyne.Window) {
 				filePath = "/" + strings.TrimLeft(file.String(), "file://")
 				//TODO: add MAC OS support
 			}
-			fmt.Println("Selected path:", filePath)
-			//function to save the file
-			saver(connection, filePath)
+			if _, err := os.Stat(filePath); os.IsPermission(err) {
+				fmt.Println("Path is unaccessible: ", err)
+				SaveFile(connection, myWindow)
+			} else {
+				//function to save the file
+				fmt.Println("Selected path:", filePath)
+				saver(connection, filePath)
+			}
 		}, myWindow)
 	fileDialog.Resize(fyne.NewSize(600, 600))
 	fileDialog.Show()
