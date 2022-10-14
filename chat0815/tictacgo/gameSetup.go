@@ -6,11 +6,11 @@ import "fyne.io/fyne/v2/theme"
 func WhoStartFirst(b bool) {
 	if b || gameStatus.WhoStart == 0 {
 		boardContainer.whoStart = 1
-		boardContainer.yourturn = true
+		boardContainer.myturn = true
 		gameStatus.WhoStart = 1
 	} else {
 		boardContainer.whoStart = 0
-		boardContainer.yourturn = false
+		boardContainer.myturn = false
 		gameStatus.WhoStart = 0
 	}
 }
@@ -41,4 +41,5 @@ func (b *Board) Reset() {
 	b.turn = 0
 	b.whoStart = -1
 	gameStatus.WhoStart = -1
+	gameStatus.TurnNumber = 0
 }

@@ -8,12 +8,10 @@ import (
 )
 
 type TicTacGoStatus struct {
-	Won        bool
-	MyTurn     bool
+	Yourturn   bool
 	Row        int
 	Column     int
 	TurnNumber int
-	Start      int //0 = not running, 1 = running, 2 = end
 	WhoStart   int // 1 first 0 second -1 not set yet
 }
 
@@ -21,7 +19,7 @@ type Board struct {
 	pieces   [3][3]uint8
 	turn     uint8
 	finished bool
-	yourturn bool
+	myturn   bool
 	whoStart int // 1 first 0 second -1 not set yet
 }
 
@@ -97,14 +95,14 @@ func (i *BoardIcon) Tapped(*fyne.PointEvent) {
 		return
 	}
 
-	if i.board.yourturn == true {
+	if i.board.myturn == true {
 		if i.board.whoStart == 1 {
 			i.SetResource(theme.RadioButtonIcon())
 		} else {
 			i.SetResource(theme.CancelIcon())
 
 		}
-		i.board.yourturn = false
+		i.board.myturn = false
 	}
 
 	i.board.CheckIfWinningConditionIsMet(i.row, i.column)
@@ -117,7 +115,7 @@ func (i *BoardIcon) UpdateConnectionData(t *TicTacGoStatus) {
 	t.TurnNumber = int(i.board.turn)
 	t.Row = i.row
 	t.Column = i.column
-	t.MyTurn = true
+	t.Yourturn = true
 }
 
 //updates Board, when enemy is tapping
@@ -129,14 +127,14 @@ func EnemyTapped(status *TicTacGoStatus) {
 		return
 	}
 
-	if i.board.yourturn == false {
+	if i.board.myturn == false {
 		if i.board.whoStart == 1 {
 			i.SetResource(theme.RadioButtonIcon())
 		} else {
 			i.SetResource(theme.CancelIcon())
 
 		}
-		i.board.yourturn = true
+		i.board.myturn = true
 	}
 
 	i.board.CheckIfWinningConditionIsMet(i.row, i.column)
