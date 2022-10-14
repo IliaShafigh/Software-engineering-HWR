@@ -2,20 +2,17 @@ package errPopUps
 
 import (
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"image/color"
+	"fyne.io/fyne/v2/widget"
 )
 
 func ShowLog(logs ErrorMessage, a fyne.App) {
-	line1 := canvas.NewText(logs.Msg, &color.RGBA{0xff, 0xff, 0xff, 0xff})
-	line1.TextSize = 12
+	line1 := widget.NewLabel(logs.Msg)
 	line1.Alignment = fyne.TextAlignCenter
-	line2 := canvas.NewText("no error just a message", &color.RGBA{0xff, 0xff, 0xff, 0xff})
+	line2 := widget.NewLabel("no error just a message")
 	if logs.Err != nil {
 		line2.Text = logs.Err.Error()
 	}
-	line2.TextSize = 12
 	line2.Alignment = fyne.TextAlignCenter
 	content := container.NewVBox(line1, line2)
 	logWin := a.NewWindow("Log Output")
