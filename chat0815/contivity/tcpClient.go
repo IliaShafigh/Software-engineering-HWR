@@ -8,7 +8,7 @@ import (
 )
 
 // UXXX Get Status Update request. Name is equal to request switch on tcpServer.go
-func UXXX(addr net.Addr, cStatusC chan *GroupChatStatus, refresh chan bool, errorC chan ErrorMessage) error {
+func UXXX(addr net.Addr, chatC chan ChatStorage, refresh chan bool, errorC chan ErrorMessage) error {
 	//Connection
 	log.Println("Client: Trying to connect to", addr.String())
 	conn, err := net.Dial("tcp", addr.String())
@@ -21,8 +21,10 @@ func UXXX(addr net.Addr, cStatusC chan *GroupChatStatus, refresh chan bool, erro
 	defer conn.Close()
 	log.Println("Client: connected successfully to:", conn.RemoteAddr().String())
 	log.Println("Client: writing request type with own name...")
-	tmp := <-cStatusC
-	cStatusC <- tmp
+	chats := <-chatC
+	tmp := <-chats.GcStatusC
+	chats.GcStatusC <- tmp
+	chatC <- chats
 	name := tmp.UserName
 	_, err = conn.Write([]byte("UXXX:" + name))
 	if err != nil {
@@ -43,15 +45,21 @@ func UXXX(addr net.Addr, cStatusC chan *GroupChatStatus, refresh chan bool, erro
 	log.Println("Client: this is the Status from Remote:")
 	PrintCStatus(*newCStatus)
 	log.Println("Client: this is the own Status")
-	tmp = <-cStatusC
-	cStatusC <- tmp
+	chats = <-chatC
+	tmp = <-chats.GcStatusC
+	chats.GcStatusC <- tmp
+	chatC <- chats
 	cStatus := *tmp
 	PrintCStatus(cStatus)
-	cStatus = mergeCStatus(*newCStatus, conn.RemoteAddr(), cStatusC)
+	cStatus = mergeCStatus(*newCStatus, conn.RemoteAddr(), chats.GcStatusC)
 	log.Println("Client: this is the merged Status")
 	PrintCStatus(cStatus)
 	refresh <- true
 	log.Println("Client: Got all updates, closing connection now")
+	chats = <-chatC
+	chats.Navigation.Remove(chats.Navigation.Objects[0])
+	chats.Navigation.Add(chats.GroupChat.Navigation)
+	chatC <- chats
 	return nil
 }
 

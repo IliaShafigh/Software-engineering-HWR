@@ -55,7 +55,7 @@ func confButtonClicked(chatC chan contivity.ChatStorage, errorC chan contivity.E
 		check := make(chan bool)
 		connAddr := contivity.TcpAddr(connIp)
 		go func() {
-			err := contivity.UXXX(connAddr, chats.GcStatusC, check, errorC)
+			err := contivity.UXXX(connAddr, chatC, check, errorC)
 			if err != nil {
 				errorC <- contivity.ErrorMessage{Err: err, Msg: "Could not connect to " + connAddr.String()}
 			}

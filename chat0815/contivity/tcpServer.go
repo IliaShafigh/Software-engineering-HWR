@@ -131,13 +131,13 @@ func HandleRequest(conn net.Conn, chatC chan ChatStorage, errorC chan ErrorMessa
 			Port: 8888,
 			Zone: "",
 		}
-		err = UXXX(&addr, gcStatusC, refresh, errorC)
+		err = UXXX(&addr, chatC, refresh, errorC)
 		if err != nil {
 			errorC <- ErrorMessage{Err: err, Msg: "SERVER: Could not Get Updates from" + addr.String()}
 		}
 	case request == "GBXX": //Good Bye Request
 		log.Println("SERVER: someone said goodbye, deleting", conn.RemoteAddr().String())
-		RemoveUserAddr(conn.RemoteAddr(), gcStatusC)
+		RemoveUserAddr(conn.RemoteAddr(), chatC)
 	case request == "NPMX": // New Private Message
 		log.Println("SERVER: new Private Message requets")
 		msg := strings.TrimPrefix(string(tmp), request+":")
@@ -191,20 +191,26 @@ func AddUserAddr(newAddr net.Addr, name string, gcStatusC chan *GroupChatStatus)
 	return true
 }
 
-func RemoveUserAddr(toRemove net.Addr, gcStatusC chan *GroupChatStatus) {
-	gcStatus := <-gcStatusC
+func RemoveUserAddr(toRemove net.Addr, chatC chan ChatStorage) {
+	chats := <-chatC
+	gcStatus := <-chats.GcStatusC
 	for i, usrAddr := range gcStatus.UserAddr {
 		if strings.Split(toRemove.String(), ":")[0] == strings.Split(usrAddr.String(), ":")[0] {
 			//Addr found so remove it and append everything else
 			part2 := gcStatus.UserAddr[i+1:]
 			gcStatus.UserAddr = gcStatus.UserAddr[0:i]
 			gcStatus.UserAddr = append(gcStatus.UserAddr, part2...)
-			gcStatusC <- gcStatus
 			log.Println(gcStatus.UserAddr, "Removed ", toRemove.String())
-			return
+			break
 		}
 	}
-	gcStatusC <- gcStatus
+	delete(gcStatus.UserNames, AddrWithoutPort(toRemove))
+	PrintCStatus(*gcStatus)
+	chats.Navigation.Remove(chats.Navigation.Objects[0])
+	chats.Navigation.Add(chats.GroupChat.Navigation)
+	chats.GcStatusC <- gcStatus
+	chatC <- chats
+
 }
 
 func AddGroupMessage(msg string, senderAddr net.Addr, gcStatusC chan *GroupChatStatus) {

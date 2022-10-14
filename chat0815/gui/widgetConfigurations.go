@@ -12,8 +12,9 @@ func groupChatNavigationConfiguration(chatC chan contivity.ChatStorage, gcStatus
 	list := widget.NewList(
 		func() int {
 			gcStatus := <-gcStatusC
+			l := len(gcStatus.UserNames) - 1
 			gcStatusC <- gcStatus
-			return len(gcStatus.UserNames) - 1
+			return l
 		},
 		func() fyne.CanvasObject {
 			return widget.NewButton("Template", func() {})
