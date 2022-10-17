@@ -154,7 +154,19 @@ func newPrivateChatNavigation(chatC chan contivity.ChatStorage, indexOCPT int, a
 	})
 	//TODO TicTacGo implementation
 	ttgButton := widget.NewButton("TTG", func() {
-		tictacgo.DrawAndShowTTG(chatC, indexOCPT)
+
+		chats := <-chatC
+		pvStatus := <-chats.Private[indexOCPT].PvStatusC
+
+		cont := tictacgo.DrawAndShowTTG(pvStatus.Ttg)
+
+		tictacgo.WhoStartFirstDialog()
+
+		chats.Private[indexOCPT].TabItem.Content = cont
+		chats.AppTabs.Refresh()
+		chats.Private[indexOCPT].PvStatusC <- pvStatus
+		chatC <- chats
+
 	})
 	//TODO Schiffeversenken implementation
 	svButton := widget.NewButton("SV", func() {

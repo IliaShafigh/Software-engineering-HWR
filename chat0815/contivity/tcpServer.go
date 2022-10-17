@@ -209,6 +209,17 @@ func AddGroupMessage(msg string, senderAddr net.Addr, gcStatusC chan *GroupChatS
 	gcStatusC <- gcStatus
 }
 
+func UpdateGameStatus(msg string, chatC chan ChatStorage, indexOCPT int, prefixName string) {
+	chats := <-chatC
+	gcStatus := <-chats.GroupChat.GcStatusC
+	pvStatus := <-chats.Private[indexOCPT].PvStatusC
+	msg = prefixName + ": " + msg
+	pvStatus.ChatContent = append(pvStatus.ChatContent, msg)
+	chats.Private[indexOCPT].Refresh <- true
+	chats.Private[indexOCPT].PvStatusC <- pvStatus
+	chats.GroupChat.GcStatusC <- gcStatus
+	chatC <- chats
+}
 func AddPrivateMessage(msg string, chatC chan ChatStorage, indexOCPT int, prefixName string) {
 	chats := <-chatC
 	gcStatus := <-chats.GroupChat.GcStatusC
@@ -311,12 +322,15 @@ func InitializePrivateChatRoomStatus(remoteAddr net.Addr) *PrivateChatStatus {
 	pvStatus := PrivateChatStatus{
 		ChatContent: chatContent,
 		UserAddr:    remoteAddr,
+
 		Ttg: &tictacgo.TicTacGoStatus{
-			Won:    false,
-			MyTurn: false,
-			Row:    0,
-			Column: 0,
+			Yourturn:   false,
+			TurnNumber: 0,
+			Row:        0,
+			Column:     0,
+			WhoStart:   -1,
 		},
+
 		Sv: &SVGameStatus{
 			MyTurn:  false,
 			Running: false,

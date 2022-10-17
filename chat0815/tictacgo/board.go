@@ -29,17 +29,6 @@ type BoardIcon struct {
 	row, column int
 }
 
-var boardIconContainer [3][3]*BoardIcon
-var boardContainer *Board
-var gameStatus *TicTacGoStatus
-
-func SaveBoardIcons(icon *BoardIcon) {
-	boardIconContainer[icon.row][icon.column] = icon
-}
-func ReturnBoardIcons(row int, column int) *BoardIcon {
-	return boardIconContainer[row][column]
-}
-
 func (b *Board) result() uint8 {
 	// Check for a win in the diagonal direction from top left to bottom right.
 	if b.pieces[0][0] != 0 && b.pieces[0][0] == b.pieces[1][1] && b.pieces[1][1] == b.pieces[2][2] {
@@ -147,8 +136,4 @@ func NewBoardIcon(row, column int, board *Board) *BoardIcon {
 	i.SetResource(theme.ViewFullScreenIcon())
 	i.ExtendBaseWidget(i)
 	return i
-}
-
-func SaveBoard(board *Board) {
-	boardContainer = board
 }
