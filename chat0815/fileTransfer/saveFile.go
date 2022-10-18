@@ -37,7 +37,7 @@ func SaveFile(connection net.Conn, myWindow fyne.Window, errorC chan errPopUps.E
 			} else {
 				//function to save the file
 				fmt.Println("Selected path:", filePath)
-				saver(connection, filePath)
+				saver(connection, filePath, errorC)
 			}
 		}, myWindow)
 	fileDialog.Resize(fyne.NewSize(600, 600))
@@ -45,7 +45,7 @@ func SaveFile(connection net.Conn, myWindow fyne.Window, errorC chan errPopUps.E
 }
 
 // function handling the saving of the file
-func saver(connection net.Conn, filePath string) {
+func saver(connection net.Conn, filePath string, errorC chan errPopUps.ErrorMessage) {
 	//Create buffer to read in the name and size of the file
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
@@ -54,7 +54,8 @@ func saver(connection net.Conn, filePath string) {
 	_, err := connection.Read(bufferFileSize)
 	if err != nil {
 		fmt.Println("Couldn't read file size: ", err)
-		panic(err)
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Couldn't read file size."}
+		saver(connection, filePath, errorC)
 	} else {
 		fmt.Println("File size received")
 	}
@@ -64,7 +65,8 @@ func saver(connection net.Conn, filePath string) {
 	_, err = connection.Read(bufferFileName)
 	if err != nil {
 		fmt.Println("Couldn't read file name: ", err)
-		panic(err)
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Couldn't read file name."}
+		saver(connection, filePath, errorC)
 	} else {
 		fmt.Println("File name received")
 	}
@@ -74,13 +76,15 @@ func saver(connection net.Conn, filePath string) {
 	newFile, err := os.Create(filePath + "/" + fileName)
 	if err != nil {
 		fmt.Println("Error while creating empty file as placeholder: ", err)
-		panic(err)
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Error while creating empty file as placeholder"}
+		saver(connection, filePath, errorC)
 	}
 	//start writing in the file
 	_, err = io.CopyN(newFile, connection, fileSize)
 	if err != nil {
 		fmt.Println("Error while writing in placeholder file: ", err)
-		panic(err)
+		errorC <- errPopUps.ErrorMessage{Err: err, Msg: "Error while creating empty file as placeholder"}
+		saver(connection, filePath, errorC)
 	} else {
 		fmt.Println("File received successfully!")
 		fmt.Println("Location: ", filePath+"/"+fileName)
