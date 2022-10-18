@@ -30,7 +30,7 @@ func SaveFile(connection net.Conn, myWindow fyne.Window, errorC chan errPopUps.E
 				filePath = "/" + strings.TrimLeft(file.String(), "file://")
 				//TODO: add MAC OS support
 			}
-			if _, err := os.Stat(filePath); !os.IsPermission(err) {
+			if _, err := os.Stat(filePath); os.IsPermission(err) {
 				fmt.Println("Path is unaccessible: ", err)
 				errorC <- errPopUps.ErrorMessage{Err: err, Msg: "You dont have permissions to save a new  file here"}
 				SaveFile(connection, myWindow, errorC)
